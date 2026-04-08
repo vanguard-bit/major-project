@@ -54,9 +54,9 @@ def _append_audit(
 
 
 @app.post("/oauth/token")
-async def issue_token(form_data: dict[str, str]):
-    client_id = form_data.get("client_id")
-    client_secret = form_data.get("client_secret")
+async def issue_token(payload: dict[str, str]):
+    client_id = payload.get("client_id")
+    client_secret = payload.get("client_secret")
     if client_id != "demo-client" or client_secret != "demo-secret":
         raise HTTPException(status_code=401, detail="Invalid client credentials")
     return {"access_token": OAUTH_TOKENS[client_id], "token_type": "bearer"}
