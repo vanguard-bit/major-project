@@ -1,0 +1,57 @@
+target:
+  name: "Mock SaaS API"
+  base_url: "http://127.0.0.1:8888"
+  auth_token: "test-api-key-12345"
+
+endpoints:
+  - path: /user
+    method: GET
+    expected_fields:
+      - id
+      - username
+      - email
+    sensitive_fields:
+      - ssn
+      - password
+      - credit_card
+
+  - path: /messages
+    method: GET
+    expected_fields:
+      - id
+      - content
+      - sender_id
+    sensitive_fields:
+      - email
+      - phone
+
+  - path: /files
+    method: GET
+    expected_fields:
+      - id
+      - filename
+      - size
+    sensitive_fields:
+      - owner_secret
+      - internal_path
+
+fuzzer:
+  iterations: 5
+  mutation_strategies:
+    - add_random_fields
+    - remove_required_fields
+    - inject_invalid_tokens
+    - boundary_values
+
+taint:
+  marker_prefix: "TAINT"
+  fields_to_taint:
+    - email
+    - username
+    - phone
+
+reporting:
+  output_dir: reports
+  formats:
+    - json
+    - markdown

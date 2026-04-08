@@ -1,0 +1,254 @@
+{
+  "meta": {
+    "target": "Mock SaaS API",
+    "generated_at": "2026-04-08T15:09:29.699472+00:00",
+    "elapsed_seconds": 15.09
+  },
+  "summary": {
+    "endpoints_tested": 3,
+    "total_requests": 18,
+    "total_findings": 20,
+    "critical_findings": 6,
+    "high_findings": 7,
+    "taint_leaks_detected": 0,
+    "unexpected_taint_leaks": 0,
+    "risk_level": "CRITICAL"
+  },
+  "endpoints_tested": [
+    "/files",
+    "/messages",
+    "/user"
+  ],
+  "findings": [
+    {
+      "type": "UNEXPECTED_FIELDS",
+      "endpoint": "/user",
+      "strategy": "add_random_fields",
+      "unexpected_fields": [
+        "credit_card",
+        "password_hash",
+        "ssn",
+        "users"
+      ],
+      "severity": "CRITICAL",
+      "detail": "Response contains 4 field(s) not in expected schema."
+    },
+    {
+      "type": "SENSITIVE_FIELD_EXPOSED",
+      "endpoint": "/user",
+      "strategy": "add_random_fields",
+      "exposed_fields": [
+        "credit_card",
+        "ssn"
+      ],
+      "severity": "CRITICAL",
+      "detail": "Sensitive field(s) ['credit_card', 'ssn'] directly exposed in response."
+    },
+    {
+      "type": "UNEXPECTED_FIELDS",
+      "endpoint": "/messages",
+      "strategy": "add_random_fields",
+      "unexpected_fields": [
+        "email",
+        "messages",
+        "phone"
+      ],
+      "severity": "CRITICAL",
+      "detail": "Response contains 3 field(s) not in expected schema."
+    },
+    {
+      "type": "SENSITIVE_FIELD_EXPOSED",
+      "endpoint": "/messages",
+      "strategy": "add_random_fields",
+      "exposed_fields": [
+        "email",
+        "phone"
+      ],
+      "severity": "CRITICAL",
+      "detail": "Sensitive field(s) ['email', 'phone'] directly exposed in response."
+    },
+    {
+      "type": "UNEXPECTED_FIELDS",
+      "endpoint": "/files",
+      "strategy": "add_random_fields",
+      "unexpected_fields": [
+        "files",
+        "internal_path",
+        "owner_secret"
+      ],
+      "severity": "CRITICAL",
+      "detail": "Response contains 3 field(s) not in expected schema."
+    },
+    {
+      "type": "SENSITIVE_FIELD_EXPOSED",
+      "endpoint": "/files",
+      "strategy": "add_random_fields",
+      "exposed_fields": [
+        "internal_path",
+        "owner_secret"
+      ],
+      "severity": "CRITICAL",
+      "detail": "Sensitive field(s) ['internal_path', 'owner_secret'] directly exposed in response."
+    },
+    {
+      "type": "EXTRA_FIELDS",
+      "endpoint": "/user",
+      "strategy": "add_random_fields",
+      "extra_fields": [
+        "credit_card",
+        "password_hash",
+        "ssn",
+        "users"
+      ],
+      "severity": "HIGH",
+      "detail": "Response includes undocumented field(s): ['credit_card', 'password_hash', 'ssn', 'users']"
+    },
+    {
+      "type": "EXTRA_FIELDS",
+      "endpoint": "/user",
+      "strategy": "inject_invalid_tokens",
+      "extra_fields": [
+        "detail"
+      ],
+      "severity": "HIGH",
+      "detail": "Response includes undocumented field(s): ['detail']"
+    },
+    {
+      "type": "EXTRA_FIELDS",
+      "endpoint": "/user",
+      "strategy": "boundary_values",
+      "extra_fields": [
+        "users"
+      ],
+      "severity": "HIGH",
+      "detail": "Response includes undocumented field(s): ['users']"
+    },
+    {
+      "type": "EXTRA_FIELDS",
+      "endpoint": "/messages",
+      "strategy": "add_random_fields",
+      "extra_fields": [
+        "email",
+        "messages",
+        "phone"
+      ],
+      "severity": "HIGH",
+      "detail": "Response includes undocumented field(s): ['email', 'messages', 'phone']"
+    },
+    {
+      "type": "EXTRA_FIELDS",
+      "endpoint": "/messages",
+      "strategy": "inject_invalid_tokens",
+      "extra_fields": [
+        "detail"
+      ],
+      "severity": "HIGH",
+      "detail": "Response includes undocumented field(s): ['detail']"
+    },
+    {
+      "type": "EXTRA_FIELDS",
+      "endpoint": "/files",
+      "strategy": "add_random_fields",
+      "extra_fields": [
+        "files",
+        "internal_path",
+        "owner_secret"
+      ],
+      "severity": "HIGH",
+      "detail": "Response includes undocumented field(s): ['files', 'internal_path', 'owner_secret']"
+    },
+    {
+      "type": "EXTRA_FIELDS",
+      "endpoint": "/files",
+      "strategy": "inject_invalid_tokens",
+      "extra_fields": [
+        "detail"
+      ],
+      "severity": "HIGH",
+      "detail": "Response includes undocumented field(s): ['detail']"
+    },
+    {
+      "type": "UNEXPECTED_FIELDS",
+      "endpoint": "/user",
+      "strategy": "inject_invalid_tokens",
+      "unexpected_fields": [
+        "detail"
+      ],
+      "severity": "MEDIUM",
+      "detail": "Response contains 1 field(s) not in expected schema."
+    },
+    {
+      "type": "UNEXPECTED_FIELDS",
+      "endpoint": "/user",
+      "strategy": "boundary_values",
+      "unexpected_fields": [
+        "users"
+      ],
+      "severity": "MEDIUM",
+      "detail": "Response contains 1 field(s) not in expected schema."
+    },
+    {
+      "type": "UNEXPECTED_FIELDS",
+      "endpoint": "/messages",
+      "strategy": "inject_invalid_tokens",
+      "unexpected_fields": [
+        "detail"
+      ],
+      "severity": "MEDIUM",
+      "detail": "Response contains 1 field(s) not in expected schema."
+    },
+    {
+      "type": "UNEXPECTED_FIELDS",
+      "endpoint": "/files",
+      "strategy": "inject_invalid_tokens",
+      "unexpected_fields": [
+        "detail"
+      ],
+      "severity": "MEDIUM",
+      "detail": "Response contains 1 field(s) not in expected schema."
+    },
+    {
+      "type": "MISSING_FIELDS",
+      "endpoint": "/user",
+      "strategy": "inject_invalid_tokens",
+      "missing_fields": [
+        "email",
+        "id",
+        "username"
+      ],
+      "severity": "MEDIUM",
+      "detail": "Expected field(s) absent from response: ['email', 'id', 'username']"
+    },
+    {
+      "type": "MISSING_FIELDS",
+      "endpoint": "/messages",
+      "strategy": "inject_invalid_tokens",
+      "missing_fields": [
+        "content",
+        "id",
+        "sender_id"
+      ],
+      "severity": "MEDIUM",
+      "detail": "Expected field(s) absent from response: ['content', 'id', 'sender_id']"
+    },
+    {
+      "type": "MISSING_FIELDS",
+      "endpoint": "/files",
+      "strategy": "inject_invalid_tokens",
+      "missing_fields": [
+        "filename",
+        "id",
+        "size"
+      ],
+      "severity": "MEDIUM",
+      "detail": "Expected field(s) absent from response: ['filename', 'id', 'size']"
+    }
+  ],
+  "taint_leaks": [],
+  "metrics": {
+    "endpoints_tested": 3,
+    "anomalies_detected": 20,
+    "taint_leaks": 0,
+    "execution_time_sec": 15.09
+  }
+}
