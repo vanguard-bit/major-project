@@ -23,6 +23,23 @@ class FindingCategory(str, Enum):
     SENSITIVE_FIELD_ACCESS = "sensitive_field_access"
     BEHAVIORAL_DIVERGENCE = "behavioral_divergence"
     POLICY_VIOLATION = "policy_violation"
+    SCOPE_VIOLATION = "scope_violation"
+    ANOMALY = "anomaly"
+    RATE_LIMIT_VIOLATION = "rate_limit_violation"
+
+
+class ComplianceStatus(str, Enum):
+    PASS = "pass"
+    FAIL = "fail"
+    WARN = "warn"
+    NOT_APPLICABLE = "not_applicable"
+
+
+class ComplianceStandard(str, Enum):
+    SOC2 = "soc2"
+    GDPR = "gdpr"
+    HIPAA = "hipaa"
+    PCI_DSS = "pci_dss"
 
 
 class TokenConfig(BaseModel):
@@ -70,6 +87,7 @@ class CapturedExchange(BaseModel):
     response_body: dict[str, Any] | list[Any] | str | None = None
     extracted_fields: list[str] = Field(default_factory=list)
     contains_sensitive_marker: bool = False
+    timestamp_ms: int | None = None
 
 
 class Finding(BaseModel):
@@ -84,6 +102,31 @@ class Finding(BaseModel):
     remediation_note: str
 
 
+class ComplianceFinding(BaseModel):
+    standard: ComplianceStandard
+    control_id: str
+    control_name: str
+    status: ComplianceStatus
+    detail: str
+    remediation: str = ""
+
+
+class ComplianceReport(BaseModel):
+    run_id: str
+    standard: ComplianceStandard
+    overall_status: ComplianceStatus
+    findings: list[ComplianceFinding]
+    passed: int
+    failed: int
+    warned: int
+
+
+class PluginResult(BaseModel):
+    plugin_name: str
+    findings: list[Finding] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class RunReport(BaseModel):
     run_id: str
     target_name: str
@@ -94,6 +137,8 @@ class RunReport(BaseModel):
     divergence_summary: list[str]
     risk_score: int
     findings: list[Finding]
+    compliance_reports: list[ComplianceReport] = Field(default_factory=list)
+    plugin_results: list[PluginResult] = Field(default_factory=list)
 
 
 class RunRecord(BaseModel):

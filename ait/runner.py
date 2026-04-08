@@ -5,7 +5,9 @@ from uuid import uuid4
 import httpx
 
 from ait.analysis import analyze_run
+from ait.compliance import run_all_compliance_checks
 from ait.models import CapturedExchange, RunRecord, TargetConfig, TestRunConfig
+from ait.plugins.registry import default_registry
 
 
 async def _resolve_token(target: TargetConfig) -> str:
@@ -65,6 +67,14 @@ async def run_assessment(target: TargetConfig, config: TestRunConfig) -> RunReco
     await _invoke_integration(target, run_id, "mutated", token)
     exchanges = await _fetch_audit_log(target, run_id)
     report = analyze_run(run_id, target, exchanges)
+
+    # Compliance checks
+    report.compliance_reports = run_all_compliance_checks(report)
+
+    # Plugin results
+    plugin_results = default_registry.run_all(target, exchanges)
+    report.plugin_results = plugin_results
+
     return RunRecord(
         run_id=run_id,
         status="completed",

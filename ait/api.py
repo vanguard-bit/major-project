@@ -5,7 +5,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Response
 
 from ait.models import RunRecord, TargetConfig, TestRunConfig
-from ait.reporting import render_html_report
+from ait.reporting import render_html_report, render_dashboard_html
+from ait.reporting.csv_export import export_findings_csv, export_compliance_csv
+from ait.reporting.pdf_report import generate_pdf_report
 from ait.runner import run_assessment
 from ait.store import store
 
@@ -88,6 +90,11 @@ async def create_run(payload: dict) -> RunRecord:
     return store.save_run(run)
 
 
+@app.get("/runs")
+async def list_runs(target_name: str | None = None) -> list[RunRecord]:
+    return store.list_runs(target_name=target_name)
+
+
 @app.get("/runs/{run_id}")
 async def get_run(run_id: str) -> RunRecord:
     try:
@@ -102,6 +109,18 @@ async def get_findings(run_id: str):
     return run.findings
 
 
+@app.get("/runs/{run_id}/compliance")
+async def get_compliance(run_id: str):
+    """Return the compliance reports for the given run."""
+    try:
+        run = store.get_run(run_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Unknown run") from exc
+    if run.report is None:
+        raise HTTPException(status_code=409, detail="Run report not available")
+    return run.report.compliance_reports
+
+
 @app.get("/runs/{run_id}/report")
 async def get_report(run_id: str, format: str = "json"):
     try:
@@ -112,4 +131,17 @@ async def get_report(run_id: str, format: str = "json"):
         raise HTTPException(status_code=409, detail="Run report not available")
     if format == "html":
         return Response(render_html_report(run.report), media_type="text/html")
+    if format == "dashboard":
+        return Response(render_dashboard_html(run.report), media_type="text/html")
+    if format == "pdf":
+        pdf_bytes = generate_pdf_report(run.report)
+        return Response(
+            pdf_bytes,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="ait-report-{run_id}.pdf"'},
+        )
+    if format == "csv":
+        return Response(export_findings_csv(run.report), media_type="text/csv")
+    if format == "compliance_csv":
+        return Response(export_compliance_csv(run.report), media_type="text/csv")
     return run.report

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import os
 from typing import Iterable
 
 from ait.models import RunRecord, TargetConfig
+from ait.storage import SQLAlchemyStore
 
 
 class InMemoryStore:
@@ -27,5 +29,17 @@ class InMemoryStore:
     def get_run(self, run_id: str) -> RunRecord:
         return self.runs[run_id]
 
+    def list_runs(self, target_name: str | None = None) -> list[RunRecord]:
+        runs = list(self.runs.values())
+        if target_name:
+            runs = [r for r in runs if r.target.name == target_name]
+        return runs
 
-store = InMemoryStore()
+
+def _make_default_store() -> SQLAlchemyStore | InMemoryStore:
+    if os.environ.get("AIT_USE_MEMORY_STORE", "").lower() in ("1", "true", "yes"):
+        return InMemoryStore()
+    return SQLAlchemyStore()
+
+
+store: SQLAlchemyStore | InMemoryStore = _make_default_store()
