@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from sqlalchemy import String, Text
+import datetime
+
+from sqlalchemy import DateTime, String, Text, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -22,3 +24,6 @@ class RunRecordORM(Base):
     status: Mapped[str] = mapped_column(String(32), nullable=False)
     target_name: Mapped[str] = mapped_column(String(256), nullable=False)
     data: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, server_default=func.now(), nullable=False
+    )

@@ -83,5 +83,5 @@ class SQLAlchemyStore:
             query = session.query(RunRecordORM)
             if target_name:
                 query = query.filter(RunRecordORM.target_name == target_name)
-            rows = query.order_by(RunRecordORM.run_id.desc()).all()
+            rows = query.order_by(RunRecordORM.created_at.desc()).all()
             return [RunRecord.model_validate_json(r.data) for r in rows]

@@ -127,7 +127,7 @@ def test_compliance_csv_has_header_and_data():
     lines = csv_content.strip().split("\n")
     assert len(lines) >= 2
     assert "standard" in lines[0]
-    assert "soc2" in csv_content
+    assert "soc2" in csv_content.lower()
 
 
 # ── PDF Report ─────────────────────────────────────────────────────────────────

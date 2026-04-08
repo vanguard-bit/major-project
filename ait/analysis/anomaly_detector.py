@@ -53,7 +53,7 @@ def detect_anomalies(exchanges: list[CapturedExchange]) -> list[Finding]:
                         f"(phase={exchange.phase}, fields={exchange.extracted_fields}) "
                         "as a statistical outlier among observed exchanges."
                     ),
-                    expected_behavior="API access patterns should be consistent with baseline behaviour.",
+                    expected_behavior="API access patterns should be consistent with baseline behavior.",
                     observed_behavior=f"Anomalous request: {exchange.method} {exchange.path} → {exchange.status_code}",
                     confidence=0.75,
                     remediation_note="Investigate whether the flagged access is intentional; if not, restrict it.",

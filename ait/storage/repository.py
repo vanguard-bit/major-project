@@ -64,11 +64,11 @@ class RunRepository:
         rows = (
             self._session.query(RunRecordORM)
             .filter(RunRecordORM.target_name == target_name)
-            .order_by(RunRecordORM.run_id.desc())
+            .order_by(RunRecordORM.created_at.desc())
             .all()
         )
         return [RunRecord.model_validate_json(r.data) for r in rows]
 
     def list_all(self) -> list[RunRecord]:
-        rows = self._session.query(RunRecordORM).order_by(RunRecordORM.run_id.desc()).all()
+        rows = self._session.query(RunRecordORM).order_by(RunRecordORM.created_at.desc()).all()
         return [RunRecord.model_validate_json(r.data) for r in rows]

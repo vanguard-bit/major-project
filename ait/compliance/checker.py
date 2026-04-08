@@ -78,7 +78,7 @@ def check_soc2(report: RunReport) -> ComplianceReport:
                 if _has_sensitive_access(report)
                 else "No unapproved sensitive data access detected."
             ),
-            remediation="Enforce field-level access controls and data minimisation.",
+            remediation="Enforce field-level access controls and data minimization.",
         )
     )
 
@@ -109,7 +109,7 @@ def check_soc2(report: RunReport) -> ComplianceReport:
             detail=(
                 "Behavioral divergence between baseline and mutated phases detected."
                 if divergence_finding
-                else "No behavioural divergence detected."
+                else "No behavioral divergence detected."
             ),
             remediation="Ensure state mutations do not unlock undeclared data pathways.",
         )
@@ -250,7 +250,7 @@ def check_pci_dss(report: RunReport) -> ComplianceReport:
                 if accessed_billing
                 else "No cardholder data fields accessed."
             ),
-            remediation="Minimise storage and access of cardholder data; use tokenisation.",
+            remediation="Minimize storage and access of cardholder data; use tokenization.",
         )
     )
 
