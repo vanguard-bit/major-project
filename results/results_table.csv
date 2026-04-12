@@ -1,0 +1,8 @@
+#,Platform,Integration Scenario,Declared Scope,Violation Type,Risk Score,Severity,Detected?
+1,Slack,Slack Bot,channels:read,Hidden endpoint access,80,High,✅ Yes
+2,GitHub,GitHub PAT,public_repo,Private repo data exposure,65,High,✅ Yes
+3,Google,Google Gmail,gmail.readonly,Write operation not blocked,45,Medium,✅ Yes
+4,Notion,Notion Integration,Read Content,Update endpoint accessible,55,Medium,✅ Yes
+5,Trello,Trello Integration,read,Card creation not blocked,40,Low,✅ Yes
+6,Slack,Slack Compliant,chat:write,None,0,—,✅ (No FP)
+7,GitHub,GitHub Compliant,read:user,None,0,—,✅ (No FP)

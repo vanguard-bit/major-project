@@ -1,0 +1,3 @@
+True Positives (TP): 5
+False Positives (FP): 0
+Precision = TP / (TP + FP) = 5 / (5 + 0) = 100%

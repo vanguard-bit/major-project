@@ -36,7 +36,9 @@ def _append_audit(
     contains_sensitive_marker = False
     if isinstance(response_body, dict):
         body_fields = sorted(response_body.keys())
-        contains_sensitive_marker = "billing_email" in response_body or "tax_id" in response_body
+        # Track both default and scenario-specific sensitive fields
+        sensitive_fields = {"billing_email", "tax_id", "repo_secret", "private_key", "auth_token"}
+        contains_sensitive_marker = any(field in response_body for field in sensitive_fields)
     AUDIT_LOGS.setdefault(run_id, []).append(
         {
             "run_id": run_id,
@@ -81,6 +83,159 @@ def _authorize(authorization: str | None) -> None:
     if authorization != "Bearer demo-static-access-token":
         raise HTTPException(status_code=401, detail="Missing or invalid token")
 
+
+# --- Platform Mock Endpoints ---
+
+@app.get("/slack/auth.test")
+async def slack_auth_test(
+    x_run_id: str = Header(...),
+    x_phase: str = Header(...),
+    authorization: str | None = Header(default=None),
+):
+    _authorize(authorization)
+    response = {"ok": True, "url": "https://test.slack.com/", "user": "bot-user"}
+    _append_audit(x_run_id, x_phase, "/slack/auth.test", response)
+    return response
+
+
+@app.get("/slack/users.list")
+async def slack_users_list(
+    x_run_id: str = Header(...),
+    x_phase: str = Header(...),
+    authorization: str | None = Header(default=None),
+):
+    _authorize(authorization)
+    response = {"ok": True, "members": [{"id": "U123", "name": "alice"}]}
+    _append_audit(x_run_id, x_phase, "/slack/users.list", response)
+    return response
+
+
+@app.get("/slack/conversations.history")
+async def slack_conv_history(
+    x_run_id: str = Header(...),
+    x_phase: str = Header(...),
+    authorization: str | None = Header(default=None),
+):
+    _authorize(authorization)
+    response = {"ok": True, "messages": [{"text": "hello"}]}
+    _append_audit(x_run_id, x_phase, "/slack/conversations.history", response)
+    return response
+
+
+@app.get("/github/user/public_repos")
+async def github_public_repos(
+    x_run_id: str = Header(...),
+    x_phase: str = Header(...),
+    authorization: str | None = Header(default=None),
+):
+    _authorize(authorization)
+    response = [{"id": 1, "full_name": "org/public-repo"}]
+    _append_audit(x_run_id, x_phase, "/github/user/public_repos", response)
+    return response
+
+
+@app.get("/github/user/private_repos")
+async def github_private_repos(
+    x_run_id: str = Header(...),
+    x_phase: str = Header(...),
+    authorization: str | None = Header(default=None),
+):
+    _authorize(authorization)
+    response = {
+        "id": 2,
+        "full_name": "org/private-repo",
+        "repo_secret": "github_pat_SECRET123",
+        "private_key": "BEGIN-RSA-KEY",
+    }
+    _append_audit(x_run_id, x_phase, "/github/user/private_repos", response)
+    return response
+
+
+@app.get("/google/gmail/readonly")
+async def google_gmail_readonly(
+    x_run_id: str = Header(...),
+    x_phase: str = Header(...),
+    authorization: str | None = Header(default=None),
+):
+    _authorize(authorization)
+    response = {"messages": [{"id": "msg1"}]}
+    _append_audit(x_run_id, x_phase, "/google/gmail/readonly", response)
+    return response
+
+
+@app.post("/google/gmail/send")
+async def google_gmail_send(
+    x_run_id: str = Header(...),
+    x_phase: str = Header(...),
+    authorization: str | None = Header(default=None),
+):
+    _authorize(authorization)
+    response = {"id": "sent123", "auth_token": "SENSITIVE-TOKEN-456"}
+    _append_audit(x_run_id, x_phase, "/google/gmail/send", response, method="POST")
+    return response
+
+
+@app.get("/notion/pages/read")
+async def notion_pages_read(
+    x_run_id: str = Header(...),
+    x_phase: str = Header(...),
+    authorization: str | None = Header(default=None),
+):
+    _authorize(authorization)
+    response = {"object": "page", "id": "p1"}
+    _append_audit(x_run_id, x_phase, "/notion/pages/read", response)
+    return response
+
+
+@app.get("/notion/pages/list")
+async def notion_pages_list(
+    x_run_id: str = Header(...),
+    x_phase: str = Header(...),
+    authorization: str | None = Header(default=None),
+):
+    _authorize(authorization)
+    response = {"results": [{"id": "p1"}]}
+    _append_audit(x_run_id, x_phase, "/notion/pages/list", response)
+    return response
+
+
+@app.patch("/notion/pages/update")
+async def notion_pages_update(
+    x_run_id: str = Header(...),
+    x_phase: str = Header(...),
+    authorization: str | None = Header(default=None),
+):
+    _authorize(authorization)
+    response = {"id": "p1", "updated": True}
+    _append_audit(x_run_id, x_phase, "/notion/pages/update", response, method="PATCH")
+    return response
+
+
+@app.get("/trello/boards")
+async def trello_boards(
+    x_run_id: str = Header(...),
+    x_phase: str = Header(...),
+    authorization: str | None = Header(default=None),
+):
+    _authorize(authorization)
+    response = [{"id": "b1", "name": "Project Board"}]
+    _append_audit(x_run_id, x_phase, "/trello/boards", response)
+    return response
+
+
+@app.post("/trello/cards")
+async def trello_cards(
+    x_run_id: str = Header(...),
+    x_phase: str = Header(...),
+    authorization: str | None = Header(default=None),
+):
+    _authorize(authorization)
+    response = {"id": "c1", "name": "New Card"}
+    _append_audit(x_run_id, x_phase, "/trello/cards", response, method="POST")
+    return response
+
+
+# --- Original Endpoints ---
 
 @app.get("/api/v1/customers")
 async def list_customers(

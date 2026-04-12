@@ -1,0 +1,13 @@
+name: "Notion Integration"
+base_url: "http://127.0.0.1:8001"
+integration_sync_url: "http://127.0.0.1:8000/sync/notion"
+audit_base_url: "http://127.0.0.1:8001/"
+auth_type: "static_token"
+token_config:
+  token: "demo-static-access-token"
+expected_endpoints:
+  - "/notion/pages/read"
+  - "/notion/pages/list"
+expected_scopes:
+  - "Read Content"
+sensitive_markers: []
