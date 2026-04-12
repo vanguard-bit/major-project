@@ -1,0 +1,15 @@
+# Live read-only probe against https://api.github.com (requires AIT_GITHUB_TOKEN).
+# Policy intentionally allowlists only GET /user; the probe also calls GET /user/repos.
+name: "GitHub Live Sandbox"
+base_url: "https://api.github.com"
+integration_sync_url: "http://127.0.0.1:1/"
+audit_base_url: "http://127.0.0.1:1/"
+auth_type: "static_token"
+token_config:
+  token: ""
+expected_endpoints:
+  - "/user"
+expected_scopes:
+  - "read:user"
+sensitive_markers: []
+description: "Live GitHub API; undeclared /user/repos (paginated) and /user/orgs vs allowlist {/user}."

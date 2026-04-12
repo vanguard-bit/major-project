@@ -1,0 +1,10 @@
+IEEEtran merge checklist (historical)
+======================================
+
+The platform-inspired evaluation (subsection + Table tab:platform) is
+now inlined in the repository root file ieee_paper.tex (no \\input).
+
+The optional fragment paper/eval_platform_scenarios.tex was removed.
+
+For Mock SaaS wording, see paper/mock_saas_paragraph.tex if you still
+need a standalone paragraph for another draft.

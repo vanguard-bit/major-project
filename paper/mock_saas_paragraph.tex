@@ -1,0 +1,18 @@
+% ------------------------------------------------------------------
+% REPLACE the existing Mock SaaS subsection paragraph that begins:
+%   "The Mock SaaS exposes four CRM endpoints:"
+% with the following paragraph (drop-in).
+% ------------------------------------------------------------------
+
+The Mock SaaS retains the original CRM surface
+(\texttt{/api/v1/customers}, \texttt{/customers/\{id\}},
+\texttt{/customers/\{id\}/notes}, \texttt{/customers/\{id\}/billing})
+for mechanism isolation experiments (Section~\ref{sec:eval}).
+Administrative routes (\texttt{/oauth/token}, \texttt{/admin/seed},
+\texttt{/admin/audit/\{run\_id\}}) support the Coordinator. In
+addition, the service exposes \emph{platform-inspired} REST paths
+patterned after Slack, GitHub, Google Gmail, Notion, and Trello (e.g.,
+channel history, repository listings, mail send, page updates, and
+card creation). Synthetic responses are written to the same structured
+audit log consumed by the Analysis Engine, so DM1--DM3 operate
+uniformly across both the CRM corpus and the extended corpus.

@@ -1,0 +1,16 @@
+# Demonstrates FN4: response contains masked_credential but policy markers omit it.
+name: "FN4 Field-Alias Negative"
+base_url: "http://127.0.0.1:8001"
+integration_sync_url: "http://127.0.0.1:8000/sync/fn4_alias"
+audit_base_url: "http://127.0.0.1:8001/"
+auth_type: "static_token"
+token_config:
+  token: "demo-static-access-token"
+expected_endpoints:
+  - "/api/v1/customers"
+  - "/api/v1/customers/cust-001/extension"
+expected_scopes:
+  - "crm.read"
+sensitive_markers:
+  - "billing_email"
+description: "Secret-bearing field uses non-marker name; AIT should not emit SENSITIVE_FIELD_ACCESS."

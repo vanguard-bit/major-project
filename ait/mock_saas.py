@@ -235,6 +235,45 @@ async def trello_cards(
     return response
 
 
+@app.get("/misc/health")
+async def misc_health(
+    x_run_id: str = Header(...),
+    x_phase: str = Header(...),
+    authorization: str | None = Header(default=None),
+):
+    _authorize(authorization)
+    response = {"status": "ok"}
+    _append_audit(x_run_id, x_phase, "/misc/health", response)
+    return response
+
+
+@app.get("/api/v1/customers/{customer_id}/extension")
+async def get_customer_extension(
+    customer_id: str,
+    x_run_id: str = Header(...),
+    x_phase: str = Header(...),
+    authorization: str | None = Header(default=None),
+):
+    """Synthetic field name not covered by typical marker lists (FN4 demo)."""
+    _authorize(authorization)
+    response = {"masked_credential": "EXFIL-SIMULATION-VALUE"}
+    _append_audit(x_run_id, x_phase, f"/api/v1/customers/{customer_id}/extension", response)
+    return response
+
+
+@app.get("/api/v1/customers/{customer_id}/profile")
+async def get_customer_profile(
+    customer_id: str,
+    x_run_id: str = Header(...),
+    x_phase: str = Header(...),
+    authorization: str | None = Header(default=None),
+):
+    _authorize(authorization)
+    response = {"customer_id": customer_id, "alias": "non-canonical-profile-view"}
+    _append_audit(x_run_id, x_phase, f"/api/v1/customers/{customer_id}/profile", response)
+    return response
+
+
 # --- Original Endpoints ---
 
 @app.get("/api/v1/customers")
@@ -289,6 +328,11 @@ async def get_billing(
     authorization: str | None = Header(default=None),
 ):
     _authorize(authorization)
-    response = CUSTOMERS[customer_id]["billing"]
+    full = CUSTOMERS[customer_id]["billing"]
+    # Baseline may return only a subset of sensitive fields (partial exposure).
+    if x_phase == "baseline":
+        response = {"billing_email": full["billing_email"]}
+    else:
+        response = dict(full)
     _append_audit(x_run_id, x_phase, f"/api/v1/customers/{customer_id}/billing", response)
     return response

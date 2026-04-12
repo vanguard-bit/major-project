@@ -1,16 +1,18 @@
-﻿from __future__ import annotations
+"""Controlled false-negative demo: aliased secret field vs marker list (FN4)."""
 
+from __future__ import annotations
+
+from pathlib import Path
 from urllib.parse import urlparse
 
 import httpx
 import pytest
+import yaml
 
-from ait.api import DEMO_TARGET
 from ait.demo_integration import app as integration_app
 from ait.mock_saas import app as mock_saas_app
 from ait.models import TestRunConfig as RunConfigModel
 from ait.runner import run_assessment
-
 
 REAL_ASYNC_CLIENT = httpx.AsyncClient
 
@@ -24,9 +26,9 @@ class RoutedAsyncClient:
                 transport=httpx.ASGITransport(app=mock_saas_app),
                 base_url="http://127.0.0.1:8001",
             ),
-            "127.0.0.1:8002": REAL_ASYNC_CLIENT(
+            "127.0.0.1:8000": REAL_ASYNC_CLIENT(
                 transport=httpx.ASGITransport(app=integration_app),
-                base_url="http://127.0.0.1:8002",
+                base_url="http://127.0.0.1:8000",
             ),
         }
 
@@ -60,14 +62,16 @@ class RoutedAsyncClient:
 
 
 @pytest.mark.anyio
-async def test_run_assessment_detects_hidden_billing_access(monkeypatch):
+async def test_fn4_alias_field_not_flagged_when_not_in_markers(monkeypatch):
     monkeypatch.setattr("ait.runner.httpx.AsyncClient", RoutedAsyncClient)
     monkeypatch.setattr("ait.demo_integration.httpx.AsyncClient", RoutedAsyncClient)
+    path = Path(__file__).resolve().parents[1] / "test_cases" / "fn4_field_alias.yaml"
+    target = yaml.safe_load(path.read_text(encoding="utf-8"))
+    from ait.models import TargetConfig
 
-    run = await run_assessment(DEMO_TARGET, RunConfigModel())
-
+    run = await run_assessment(TargetConfig.model_validate(target), RunConfigModel())
     assert run.report is not None
-    assert "/api/v1/customers/cust-001/billing" in run.report.hidden_endpoints
-    assert "billing_email" in run.report.sensitive_fields_accessed
-    assert any(f.category.value == "behavioral_divergence" for f in run.findings)
-
+    bodies = [e.response_body for e in run.exchanges if isinstance(e.response_body, dict)]
+    assert any(b.get("masked_credential") for b in bodies)
+    assert not any(f.category.value == "sensitive_field_access" for f in run.findings)
+    assert run.report.risk_score == 0
