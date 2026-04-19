@@ -1,8 +1,8 @@
-#,Platform,Integration Scenario,Declared Scope,Violation Type,Risk Score,Severity,Detected?
-1,Slack,Slack Bot,channels:read,Hidden endpoint access,80,High,✅ Yes
-2,GitHub,GitHub PAT,public_repo,Private repo data exposure,65,High,✅ Yes
-3,Google,Google Gmail,gmail.readonly,Write operation not blocked,45,Medium,✅ Yes
-4,Notion,Notion Integration,Read Content,Update endpoint accessible,55,Medium,✅ Yes
-5,Trello,Trello Integration,read,Card creation not blocked,40,Low,✅ Yes
-6,Slack,Slack Compliant,chat:write,None,0,—,✅ (No FP)
-7,GitHub,GitHub Compliant,read:user,None,0,—,✅ (No FP)
+#,Platform,Integration Scenario,Declared Scope,Violation Type,Risk Score,Severity,Detected?,Duration (ms),Hidden Endpoints,Sensitive Fields,Divergence Count,Attack Status Codes
+1,Slack,Bot token over-access,channels:read,Behavioral divergence; Hidden endpoint access,80,High,✅ Yes,4.16,"/slack/conversations.history, /slack/users.list",None,2,/slack/users.list=baseline:200; /slack/conversations.history=mutated:200
+2,GitHub,PAT broad scope,public_repo,Hidden endpoint access; Sensitive field access,65,Critical,✅ Yes,5.37,/github/user/private_repos,"private_key, repo_secret",0,"/github/user/private_repos=baseline:200,mutated:200"
+3,Google,Readonly token write attempt,gmail.readonly,Hidden endpoint access; Sensitive field access,45,Critical,✅ Yes,4.39,/google/gmail/send,auth_token,0,"/google/gmail/send=baseline:200,mutated:200"
+4,Notion,Read-only integration mutation,Read Content,Behavioral divergence; Hidden endpoint access,55,High,✅ Yes,3.92,/notion/pages/update,None,2,/notion/pages/update=mutated:200
+5,Trello,Read token card creation,read,Behavioral divergence; Hidden endpoint access,40,High,✅ Yes,3.37,/trello/cards,None,1,/trello/cards=mutated:200
+6,Slack,Compliant bot,chat:write,None,0,—,✅ (No FP),2.91,None,None,0,"/slack/auth.test=baseline:200,mutated:200"
+7,GitHub,Compliant app,read:user,None,0,—,✅ (No FP),3.13,None,None,0,"/github/user/public_repos=baseline:200,mutated:200"

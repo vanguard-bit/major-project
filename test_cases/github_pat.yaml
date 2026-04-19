@@ -1,4 +1,5 @@
 name: "GitHub PAT"
+platform: "GitHub"
 base_url: "http://127.0.0.1:8001"
 integration_sync_url: "http://127.0.0.1:8000/sync/github"
 audit_base_url: "http://127.0.0.1:8001/"
@@ -12,3 +13,11 @@ expected_scopes:
 sensitive_markers:
   - "repo_secret"
   - "private_key"
+paper:
+  scenario_label: "PAT broad scope"
+  expected_result: "violation"
+  expected_categories:
+    - "hidden_endpoint"
+    - "sensitive_field_access"
+  attack_paths:
+    - "/github/user/private_repos"

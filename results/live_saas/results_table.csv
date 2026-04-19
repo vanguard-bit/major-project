@@ -1,0 +1,3 @@
+#,Platform,Integration Scenario,Declared Scope,Violation Type,Risk Score,Severity,Detected?,Duration (ms),Hidden Endpoints,Sensitive Fields,Attack Status Codes,Config File
+1,GitHub,GitHub live scope boundary,"read:user, public_repo",Policy violation,30,High,✅ Yes,1602.5,None,None,"/user/repos=baseline:200,mutated:200",github_live.yaml
+2,Notion,Notion live read-path validation,read content,None,0,—,No findings,1512.33,None,None,N/A,notion_live.yaml

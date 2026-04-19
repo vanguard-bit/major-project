@@ -35,6 +35,8 @@ The prototype does not yet attempt to solve:
 
 The codebase is organized as a modular monolith with three runtime services and one operator CLI.
 
+It now also includes a direct live-SaaS evaluation path for explicit sandbox scenarios. That path bypasses the mock SaaS and integration services and issues the configured requests directly to real provider APIs.
+
 ### 3.1 Components
 
 `AIT Coordinator`
@@ -52,6 +54,14 @@ The codebase is organized as a modular monolith with three runtime services and 
 - launches the integration twice, once as `baseline` and once as `mutated`
 - retrieves the captured audit trail from the mock SaaS
 - invokes the analysis engine and returns a complete run record
+
+`Live SaaS Runner`
+
+- implemented in [ait/live_runner.py](/home/loki/projects/test/major_project/ait/live_runner.py)
+- reads bearer tokens from environment variables
+- executes operator-defined baseline and mutated requests directly against real SaaS APIs
+- converts HTTP responses into `CapturedExchange` records without mock-side instrumentation
+- adds policy findings when a request expected to be denied succeeds, or a request expected to succeed fails
 
 `Analysis Engine`
 
@@ -121,6 +131,7 @@ ait/
 configs/
   demo_target.json
 docs/
+  LIVE_SAAS_EVALUATION.md
   PRODUCT_ARCHITECTURE.md
 tests/
   test_analysis.py
@@ -214,6 +225,7 @@ Behavior:
 Current limitation:
 
 - targets are not persisted across coordinator restarts
+- live scenario definitions are file-driven and separate from the in-memory coordinator target registry
 
 ### 6.2 Authentication Handling
 

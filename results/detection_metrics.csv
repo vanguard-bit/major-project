@@ -1,0 +1,4 @@
+Category,TP,FP,FN,Precision,Recall,F1
+Hidden endpoint access,5,0,0,1.00,1.00,1.00
+Sensitive field access,2,0,0,1.00,1.00,1.00
+Behavioral divergence,3,0,0,1.00,1.00,1.00

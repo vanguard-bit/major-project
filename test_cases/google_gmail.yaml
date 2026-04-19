@@ -1,4 +1,5 @@
 name: "Google Gmail"
+platform: "Google"
 base_url: "http://127.0.0.1:8001"
 integration_sync_url: "http://127.0.0.1:8000/sync/google"
 audit_base_url: "http://127.0.0.1:8001/"
@@ -11,3 +12,11 @@ expected_scopes:
   - "gmail.readonly"
 sensitive_markers:
   - "auth_token"
+paper:
+  scenario_label: "Readonly token write attempt"
+  expected_result: "violation"
+  expected_categories:
+    - "hidden_endpoint"
+    - "sensitive_field_access"
+  attack_paths:
+    - "/google/gmail/send"

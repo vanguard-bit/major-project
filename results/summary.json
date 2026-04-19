@@ -1,0 +1,40 @@
+{
+  "generated_at": "2026-04-19",
+  "scenario_count": 7,
+  "platform_count": 5,
+  "violation_scenarios": 5,
+  "compliant_scenarios": 2,
+  "precision": 1.0,
+  "mean_risk_score": 40.71,
+  "max_risk_score": 80,
+  "min_risk_score": 0,
+  "category_metrics": [
+    {
+      "Category": "Hidden endpoint access",
+      "TP": 5,
+      "FP": 0,
+      "FN": 0,
+      "Precision": "1.00",
+      "Recall": "1.00",
+      "F1": "1.00"
+    },
+    {
+      "Category": "Sensitive field access",
+      "TP": 2,
+      "FP": 0,
+      "FN": 0,
+      "Precision": "1.00",
+      "Recall": "1.00",
+      "F1": "1.00"
+    },
+    {
+      "Category": "Behavioral divergence",
+      "TP": 3,
+      "FP": 0,
+      "FN": 0,
+      "Precision": "1.00",
+      "Recall": "1.00",
+      "F1": "1.00"
+    }
+  ]
+}

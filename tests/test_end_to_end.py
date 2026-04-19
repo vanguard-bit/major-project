@@ -54,6 +54,10 @@ class RoutedAsyncClient:
         client, absolute = self._resolve(url)
         return await client.post(absolute, **kwargs)
 
+    async def request(self, method: str, url: str, **kwargs):
+        client, absolute = self._resolve(url)
+        return await client.request(method, absolute, **kwargs)
+
 
 @pytest.mark.anyio
 async def test_run_assessment_detects_hidden_billing_access(monkeypatch):

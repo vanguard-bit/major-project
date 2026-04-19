@@ -1,0 +1,57 @@
+target:
+  name: "GitHub Live Sandbox"
+  base_url: "https://api.github.com"
+  integration_sync_url: "https://api.github.com"
+  audit_base_url: "https://api.github.com"
+  auth_type: "static_token"
+  token_config:
+    token: "unused-live-runner-reads-env"
+  expected_endpoints:
+    - "/user"
+    - "/user/repos"
+  expected_scopes:
+    - "read:user"
+    - "public_repo"
+  sensitive_markers:
+    - "private_key"
+    - "token"
+auth_env_var: "GITHUB_TOKEN"
+auth_scheme: "Bearer"
+timeout_seconds: 20
+paper:
+  platform: "GitHub"
+  scenario_label: "GitHub live scope boundary"
+requests:
+  - name: "Identity check"
+    phase: "baseline"
+    method: "GET"
+    path: "/user"
+    expected_behavior: "allowed"
+    expected_http: [200]
+    headers:
+      Accept: "application/vnd.github+json"
+      X-GitHub-Api-Version: "2022-11-28"
+  - name: "List public repos"
+    phase: "baseline"
+    method: "GET"
+    path: "/user/repos"
+    params:
+      visibility: "public"
+      per_page: 5
+    expected_behavior: "allowed"
+    expected_http: [200]
+    headers:
+      Accept: "application/vnd.github+json"
+      X-GitHub-Api-Version: "2022-11-28"
+  - name: "Attempt private repo listing"
+    phase: "mutated"
+    method: "GET"
+    path: "/user/repos"
+    params:
+      visibility: "private"
+      per_page: 5
+    expected_behavior: "denied"
+    expected_http: [403, 404]
+    headers:
+      Accept: "application/vnd.github+json"
+      X-GitHub-Api-Version: "2022-11-28"

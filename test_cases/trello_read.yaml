@@ -1,4 +1,5 @@
 name: "Trello Integration"
+platform: "Trello"
 base_url: "http://127.0.0.1:8001"
 integration_sync_url: "http://127.0.0.1:8000/sync/trello"
 audit_base_url: "http://127.0.0.1:8001/"
@@ -10,3 +11,11 @@ expected_endpoints:
 expected_scopes:
   - "read"
 sensitive_markers: []
+paper:
+  scenario_label: "Read token card creation"
+  expected_result: "violation"
+  expected_categories:
+    - "hidden_endpoint"
+    - "behavioral_divergence"
+  attack_paths:
+    - "/trello/cards"
