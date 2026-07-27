@@ -146,6 +146,61 @@ async def test_execute_scenario_captures_exchanges_and_findings():
         FindingCategory.BEHAVIORAL_DIVERGENCE,
     }
     assert outcome.observed_categories == outcome.expected_categories
+    assert len(outcome.exchanges) == 3
+    for captured in outcome.exchanges:
+        assert captured.method == "GET"
+        assert captured.path.startswith("/api/v1/customers")
+        assert captured.request_headers
+        assert "host" in {k.lower() for k in captured.request_headers}
+
+
+@pytest.mark.anyio
+async def test_execute_scenario_captures_actual_httpx_request_not_spec_copy():
+    scenario = ScenarioDefinition.model_validate(
+        {
+            "schema_version": "1.0.0",
+            "id": "capture-httpx",
+            "suite": "crm",
+            "platform_style": "generic-crm",
+            "description": "POST body and headers must come from httpx.Request.",
+            "target": {
+                "name": "capture-httpx",
+                "base_url": "http://mock.invalid/",
+                "integration_sync_url": "http://integration.invalid/sync",
+                "audit_base_url": "http://mock.invalid/",
+                "expected_endpoints": ["/api/v1/customers"],
+            },
+            "exchanges": [
+                {
+                    "phase": "baseline",
+                    "method": "POST",
+                    "path": "/api/v1/customers",
+                    "request_body": {"name": "Ada"},
+                    "response_body": {"ok": True},
+                },
+                {
+                    "phase": "mutated",
+                    "method": "POST",
+                    "path": "/api/v1/customers",
+                    "request_body": {"name": "Ada"},
+                    "response_body": {"ok": True},
+                },
+            ],
+            "expected_labels": [],
+        }
+    )
+    outcome = await execute_scenario(scenario)
+    assert len(outcome.exchanges) == 2
+    for captured in outcome.exchanges:
+        assert captured.method == "POST"
+        assert captured.path == "/api/v1/customers"
+        assert captured.request_body == {"name": "Ada"}
+        assert captured.request_headers
+        assert any(k.lower() == "content-type" for k in captured.request_headers)
+        assert captured.response_body == {"ok": True}
+    assert outcome.target is not None
+    assert outcome.target.name == "capture-httpx"
+    assert outcome.expected_labels == []
 
 
 @pytest.mark.anyio

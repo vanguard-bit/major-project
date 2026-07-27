@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from typing import Any
 from urllib.parse import urlparse
@@ -58,11 +59,30 @@ def _parse_response_body(response: httpx.Response) -> dict[str, Any] | list[Any]
         return text
 
 
+def _parse_request_body(request: httpx.Request) -> dict[str, Any] | list[Any] | str | None:
+    content = request.content
+    if not content:
+        return None
+    content_type = request.headers.get("content-type", "")
+    text = content.decode("utf-8", errors="replace")
+    if "application/json" in content_type:
+        return json.loads(text)
+    try:
+        return json.loads(text)
+    except ValueError:
+        return text
+
+
+def _request_headers(request: httpx.Request) -> dict[str, str]:
+    return {key: value for key, value in request.headers.items()}
+
+
 async def execute_scenario(scenario: ScenarioDefinition) -> ScenarioOutcome:
     run_id = scenario.id
     pending = list(scenario.exchanges)
     transport = httpx.MockTransport(scripted_transport_handler(pending))
-    markers = set(scenario.target.sensitive_markers)
+    target = scenario.target.to_target_config()
+    markers = set(target.sensitive_markers)
     captured: list[CapturedExchange] = []
 
     async with httpx.AsyncClient(
@@ -77,6 +97,7 @@ async def execute_scenario(scenario: ScenarioDefinition) -> ScenarioOutcome:
                 else:
                     kwargs["content"] = str(spec.request_body)
             response = await client.request(spec.method, spec.path, **kwargs)
+            request = response.request
             response_body = _parse_response_body(response)
             extracted = sorted(extract_field_paths(response_body))
             contains_sensitive = any(
@@ -86,18 +107,18 @@ async def execute_scenario(scenario: ScenarioDefinition) -> ScenarioOutcome:
                 CapturedExchange(
                     run_id=run_id,
                     phase=spec.phase,
-                    method=spec.method,
-                    path=spec.path,
+                    method=request.method.upper(),
+                    path=_request_path(request),
                     status_code=response.status_code,
-                    request_headers={},
-                    request_body=spec.request_body,
+                    request_headers=_request_headers(request),
+                    request_body=_parse_request_body(request),
                     response_body=response_body,
                     extracted_fields=extracted,
                     contains_sensitive_marker=contains_sensitive,
                 )
             )
 
-    report = analyze_run(run_id, scenario.target, captured)
+    report = analyze_run(run_id, target, captured)
     expected_categories = {label.category for label in scenario.expected_labels}
     observed_categories = {finding.category for finding in report.findings}
     return ScenarioOutcome(
@@ -105,6 +126,9 @@ async def execute_scenario(scenario: ScenarioDefinition) -> ScenarioOutcome:
         expected_categories=expected_categories,
         observed_categories=observed_categories,
         report=report,
+        exchanges=captured,
+        expected_labels=list(scenario.expected_labels),
+        target=scenario.target,
     )
 
 

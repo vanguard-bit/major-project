@@ -66,6 +66,29 @@ def test_load_scenario_rejects_unknown_keys(tmp_path: Path):
         load_scenario(path)
 
 
+def test_load_scenario_rejects_unknown_nested_target_keys(tmp_path: Path):
+    data = {
+        **MINIMAL,
+        "target": {**MINIMAL["target"], "unexpected_target_key": "nope"},
+    }
+    path = _write_yaml(tmp_path / "bad-target.yaml", data)
+    with pytest.raises(ValidationError):
+        load_scenario(path)
+
+
+def test_load_scenario_rejects_unknown_nested_token_config_keys(tmp_path: Path):
+    data = {
+        **MINIMAL,
+        "target": {
+            **MINIMAL["target"],
+            "token_config": {"token": "secret", "unexpected_token_key": True},
+        },
+    }
+    path = _write_yaml(tmp_path / "bad-token.yaml", data)
+    with pytest.raises(ValidationError):
+        load_scenario(path)
+
+
 def test_load_scenario_rejects_unsupported_schema_version(tmp_path: Path):
     data = {**MINIMAL, "schema_version": "9.9.9"}
     path = _write_yaml(tmp_path / "bad.yaml", data)

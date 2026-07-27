@@ -19,6 +19,11 @@ app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 def _outcome_payload(outcome: ScenarioOutcome) -> dict[str, Any]:
     return {
         "scenario_id": outcome.scenario_id,
+        "target": (
+            outcome.target.model_dump(mode="json") if outcome.target is not None else None
+        ),
+        "expected_labels": [label.model_dump(mode="json") for label in outcome.expected_labels],
+        "exchanges": [exchange.model_dump(mode="json") for exchange in outcome.exchanges],
         "expected_categories": sorted(c.value for c in outcome.expected_categories),
         "observed_categories": sorted(c.value for c in outcome.observed_categories),
         "passed": outcome.expected_categories == outcome.observed_categories,
@@ -42,6 +47,10 @@ async def _run(
     command: list[str],
 ) -> int:
     scenarios = load_scenarios(scenario_root, suite=suite)
+    if not scenarios:
+        typer.echo("No scenarios discovered; refusing empty corpus.", err=True)
+        return 1
+
     outcomes: list[ScenarioOutcome] = []
     failures = 0
 

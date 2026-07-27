@@ -2,13 +2,28 @@ from __future__ import annotations
 
 from ait.experiments.metrics import CategoryMetrics, evaluate_categories, micro_average
 from ait.experiments.schema import ScenarioOutcome
-from ait.models import FindingCategory, RunReport
+from ait.models import Finding, FindingCategory, RunReport, Severity
+
+
+def _finding(category: FindingCategory, endpoint: str = "/api/v1/x") -> Finding:
+    return Finding(
+        severity=Severity.MEDIUM,
+        category=category,
+        endpoint=endpoint,
+        title="test",
+        evidence="evidence",
+        expected_behavior="expected",
+        observed_behavior="observed",
+        remediation_note="note",
+    )
 
 
 def _outcome(
     scenario_id: str,
     expected: set[FindingCategory],
     observed: set[FindingCategory],
+    *,
+    findings: list[Finding] | None = None,
 ) -> ScenarioOutcome:
     return ScenarioOutcome(
         scenario_id=scenario_id,
@@ -23,7 +38,7 @@ def _outcome(
             sensitive_fields_accessed=[],
             divergence_summary=[],
             risk_score=0,
-            findings=[],
+            findings=findings or [],
         ),
     )
 
@@ -63,14 +78,21 @@ def test_evaluate_categories_tp_fp_fn_tn_and_undefined_metrics():
 
 
 def test_evaluate_categories_duplicate_findings_count_once_per_scenario():
+    findings = [
+        _finding(FindingCategory.SENSITIVE_FIELD_ACCESS, "/api/v1/a"),
+        _finding(FindingCategory.SENSITIVE_FIELD_ACCESS, "/api/v1/b"),
+    ]
+    observed = {finding.category for finding in findings}
+    assert len(findings) == 2
+    assert observed == {FindingCategory.SENSITIVE_FIELD_ACCESS}
     outcomes = [
         _outcome(
             "dup",
             {FindingCategory.SENSITIVE_FIELD_ACCESS},
-            {FindingCategory.SENSITIVE_FIELD_ACCESS},
+            observed,
+            findings=findings,
         )
     ]
-    # observed_categories is already a set; ensure category presence is binary
     metrics = {m.category: m for m in evaluate_categories(outcomes)}
     sensitive = metrics[FindingCategory.SENSITIVE_FIELD_ACCESS]
     assert sensitive.tp == 1
