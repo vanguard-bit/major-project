@@ -203,6 +203,11 @@ def test_replay_raw_artifact_includes_provenance_fields(tmp_path: Path):
     )
     raw = json.loads((output / "raw" / "replay" / "ok.json").read_text(encoding="utf-8"))
     payload = raw["payload"]
+    assert payload["schema_version"] == "1.0.0"
+    assert payload["incident_name"] == "Test Incident"
+    assert payload["reconstruction"] is True
+    assert payload["source_accessed_utc"]
+    assert payload["target"]["name"] == "ok"
     assert payload["source_urls"]
     assert payload["documented_behavior"]
     assert payload["mapping_assumptions"]

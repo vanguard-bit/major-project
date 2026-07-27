@@ -74,6 +74,19 @@ class ExpectedLabel(BaseModel):
     category: FindingCategory
     endpoint: str | None = None
 
+    @field_validator("endpoint")
+    @classmethod
+    def normalize_expected_endpoint(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        # Lazy import avoids circular import with scenario_loader.
+        from ait.experiments.scenario_loader import normalize_path
+
+        normalized = normalize_path(value)
+        if not normalized.startswith("/"):
+            raise ValueError("endpoint must start with '/'")
+        return normalized
+
 
 def labels_exact_match(
     expected_labels: Sequence[ExpectedLabel],
@@ -81,22 +94,37 @@ def labels_exact_match(
 ) -> bool:
     """Match expected labels to findings with optional endpoint qualification.
 
-    When a label supplies an endpoint, a finding with the same category and
-    endpoint must exist. Labels without an endpoint match by category only.
-    Overall category sets must still be equal (no missing or extra categories).
+    Category sets must be equal. For each category that has any endpoint-qualified
+    expected label, the set of expected endpoints must equal the set of observed
+    finding endpoints for that category (after query normalization). Category-only
+    labels match by category presence; once any label qualifies endpoints for a
+    category, that category uses exact endpoint-set equality.
     """
-    for label in expected_labels:
-        if label.endpoint is not None:
-            if not any(
-                finding.category == label.category and finding.endpoint == label.endpoint
-                for finding in findings
-            ):
-                return False
-        elif not any(finding.category == label.category for finding in findings):
-            return False
+    from ait.experiments.scenario_loader import normalize_path
+
     expected_categories = {label.category for label in expected_labels}
     observed_categories = {finding.category for finding in findings}
-    return expected_categories == observed_categories
+    if expected_categories != observed_categories:
+        return False
+
+    observed_endpoints: dict[FindingCategory, set[str]] = {}
+    for finding in findings:
+        observed_endpoints.setdefault(finding.category, set()).add(
+            normalize_path(finding.endpoint)
+        )
+
+    expected_endpoints: dict[FindingCategory, set[str]] = {}
+    for label in expected_labels:
+        if label.endpoint is None:
+            continue
+        expected_endpoints.setdefault(label.category, set()).add(
+            normalize_path(label.endpoint)
+        )
+
+    for category, expected in expected_endpoints.items():
+        if expected != observed_endpoints.get(category, set()):
+            return False
+    return True
 
 
 class ScenarioDefinition(BaseModel):

@@ -720,3 +720,152 @@ def test_cli_missing_credentials_exit_2_no_writes(
     code = main(["run", "--plan", str(path), "--output-root", str(out)])
     assert code == EXIT_MISSING_CREDS
     assert list(out.rglob("*.json")) == []
+
+
+# --- Remaining Phase 3 review gaps -----------------------------------------
+
+
+def test_reject_double_encoded_dot_dot_traversal() -> None:
+    plan = LivePlan.model_validate(
+        _minimal_plan(requests=[{"method": "GET", "path": "/user/%252e%252e/admin"}])
+    )
+    with pytest.raises(SafetyRejectionError, match=r"\.\.|traversal|encoded"):
+        validate_request(plan, plan.requests[0], allow_mutation=False)
+
+
+def test_reject_percent_decoded_control_chars() -> None:
+    plan = LivePlan.model_validate(
+        _minimal_plan(requests=[{"method": "GET", "path": "/user/%00admin"}])
+    )
+    with pytest.raises(SafetyRejectionError, match=r"control|null|unsafe"):
+        validate_request(plan, plan.requests[0], allow_mutation=False)
+
+
+@pytest.mark.anyio
+async def test_absolute_url_query_not_bytes_repr(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AIT_TEST_TOKEN", "tok")
+    plan = LivePlan.model_validate(
+        _minimal_plan(
+            expected_endpoints=["/user/repos"],
+            requests=[
+                {
+                    "method": "GET",
+                    "path": "https://api.github.com/user/repos?per_page=1&page=2",
+                }
+            ],
+        )
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"ok": True}, request=request)
+
+    observations, _ = await execute_live_plan(plan, transport=httpx.MockTransport(handler))
+    target = observations[0].request_target
+    assert "b'" not in target
+    assert "per_page=1" in target
+    assert "page=2" in target
+
+
+@pytest.mark.anyio
+async def test_invalid_retry_after_equal_to_token_is_scrubbed(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from ait.live_runner import _retry_after_seconds
+
+    token = "ghp_RETRY_AFTER_SECRET_TOKEN"
+    monkeypatch.setenv("AIT_TEST_TOKEN", token)
+
+    with pytest.raises(SafetyRejectionError) as unit_exc:
+        _retry_after_seconds(httpx.Headers({"retry-after": token}), secrets=[token])
+    assert token not in str(unit_exc.value)
+    assert "[REDACTED]" in str(unit_exc.value)
+
+    plan = LivePlan.model_validate(_minimal_plan())
+    monkeypatch.setattr("ait.live_runner._sleep", _noop_sleep)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(429, headers={"retry-after": token}, request=request)
+
+    with pytest.raises(SafetyRejectionError) as excinfo:
+        await execute_live_plan(
+            plan,
+            transport=httpx.MockTransport(handler),
+            output_root=tmp_path,
+            command=["ait.live_runner", "run"],
+        )
+    assert token not in str(excinfo.value)
+    for path in tmp_path.rglob("*.json"):
+        assert token not in path.read_text(encoding="utf-8")
+
+
+def test_cli_prints_scrubbed_retry_after_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    token = "ghp_RETRY_AFTER_SECRET_TOKEN"
+    monkeypatch.setenv("AIT_TEST_TOKEN", token)
+    plan_path = _write_plan(tmp_path, _minimal_plan())
+
+    async def _raise_scrubbed(*_args: Any, **_kwargs: Any) -> tuple[list[Any], Any]:
+        raise SafetyRejectionError("invalid Retry-After header: '[REDACTED]'")
+
+    monkeypatch.setattr("ait.live_runner.execute_live_plan", _raise_scrubbed)
+    code = main(["run", "--plan", str(plan_path), "--output-root", str(tmp_path / "cli-out")])
+    captured = capsys.readouterr()
+    assert code == EXIT_SAFETY
+    assert token not in captured.err
+    assert token not in captured.out
+    assert "[REDACTED]" in captured.err or "Retry-After" in captured.err
+
+
+@pytest.mark.anyio
+async def test_preflight_path_rejection_writes_blocked_status(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    token = "unique-live-secret-value"
+    monkeypatch.setenv("AIT_TEST_TOKEN", token)
+    plan = LivePlan.model_validate(
+        _minimal_plan(requests=[{"method": "GET", "path": "/user/../admin"}])
+    )
+    with pytest.raises(SafetyRejectionError):
+        await execute_live_plan(
+            plan,
+            transport=httpx.MockTransport(lambda r: httpx.Response(200)),
+            output_root=tmp_path,
+            command=["ait.live_runner", "run"],
+        )
+    status_files = list(tmp_path.rglob("*.json"))
+    assert status_files
+    blob = "\n".join(p.read_text(encoding="utf-8") for p in status_files)
+    assert '"blocked"' in blob
+    assert token not in blob
+
+
+def test_cli_preflight_safety_writes_blocked_status(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("AIT_TEST_TOKEN", "tok")
+    out = tmp_path / "out"
+    out.mkdir()
+    path = _write_plan(
+        tmp_path,
+        _minimal_plan(
+            environment="production-readonly",
+            requests=[{"method": "POST", "path": "/user"}],
+        ),
+    )
+    code = main(
+        [
+            "run",
+            "--plan",
+            str(path),
+            "--output-root",
+            str(out),
+            "--allow-mutation",
+        ]
+    )
+    assert code == EXIT_SAFETY
+    blob = "\n".join(p.read_text(encoding="utf-8") for p in out.rglob("*.json"))
+    assert blob
+    assert '"blocked"' in blob

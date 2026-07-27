@@ -182,7 +182,13 @@ def run_replay_pipeline(
             },
             payload={
                 "incident_id": outcome.incident_id,
+                "schema_version": incident.schema_version,
+                "incident_name": incident.incident_name,
                 "reconstruction": True,
+                "source_accessed_utc": incident.source_accessed_utc.isoformat().replace(
+                    "+00:00", "Z"
+                ),
+                "target": incident.target.model_dump(mode="json"),
                 "exact_match": outcome.exact_match,
                 "source_urls": [str(u) for u in incident.source_urls],
                 "documented_behavior": list(incident.documented_behavior),

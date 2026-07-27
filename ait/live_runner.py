@@ -133,6 +133,12 @@ def normalize_endpoint_path(path: str) -> str:
     return re.sub(r"/{2,}", "/", without_query) or "/"
 
 
+def _query_as_str(query: Any) -> str:
+    if isinstance(query, (bytes, bytearray)):
+        return bytes(query).decode("ascii", errors="strict")
+    return str(query)
+
+
 def _request_target(path: str) -> str:
     """Path + query for evidence; fragment stripped. Not used for endpoint identity."""
     without_fragment = path.split("#", 1)[0]
@@ -140,7 +146,7 @@ def _request_target(path: str) -> str:
         url = httpx.URL(without_fragment)
         target = url.path or "/"
         if url.query:
-            target = f"{target}?{url.query}"
+            target = f"{target}?{_query_as_str(url.query)}"
         return target
     if not without_fragment.startswith("/"):
         without_fragment = "/" + without_fragment
@@ -194,23 +200,40 @@ def _url_origin(url: httpx.URL) -> tuple[str, str, int]:
     return scheme, host_idna, int(port)
 
 
-def _reject_unsafe_path_text(path_text: str) -> None:
+def _path_has_control_chars(path_text: str) -> bool:
+    return any(ord(ch) < 32 or ord(ch) == 127 for ch in path_text)
+
+
+def _reject_path_form(path_text: str) -> None:
     if "\\" in path_text or "%5c" in path_text.lower():
         raise SafetyRejectionError("backslashes are not allowed in paths")
-    if not path_text.startswith("/"):
-        raise SafetyRejectionError("path must be absolute (start with '/')")
-    decoded = unquote(path_text)
-    if "\\" in decoded:
-        raise SafetyRejectionError("backslashes are not allowed in paths")
-    # Encoded or decoded dot-segments
+    if _path_has_control_chars(path_text):
+        raise SafetyRejectionError("control characters are not allowed in paths")
     lowered = path_text.lower()
     if "%2e%2e" in lowered or "%2e." in lowered or ".%2e" in lowered:
         raise SafetyRejectionError("encoded path traversal ('..') is not allowed")
-    segments = [seg for seg in decoded.split("/") if seg not in ("",)]
-    if any(seg == ".." or seg == "." for seg in segments):
+    segments = [seg for seg in path_text.split("/") if seg not in ("",)]
+    if any(seg in {"..", "."} for seg in segments):
         raise SafetyRejectionError("path traversal ('..') is not allowed")
     if ".." in path_text.split("/"):
         raise SafetyRejectionError("path traversal ('..') is not allowed")
+
+
+def _reject_unsafe_path_text(path_text: str) -> None:
+    if not path_text.startswith("/"):
+        raise SafetyRejectionError("path must be absolute (start with '/')")
+    current = path_text
+    seen: set[str] = set()
+    while current not in seen:
+        seen.add(current)
+        _reject_path_form(current)
+        decoded = unquote(current)
+        if decoded == current:
+            break
+        current = decoded
+    else:
+        raise SafetyRejectionError("path decoding did not reach a fixed point")
+    _reject_path_form(current)
 
 
 def resolve_request_url(plan: LivePlan, request: LiveRequestSpec) -> httpx.URL:
@@ -348,7 +371,9 @@ async def _sleep(seconds: float) -> None:
     await anyio.sleep(seconds)
 
 
-def _retry_after_seconds(headers: httpx.Headers) -> float:
+def _retry_after_seconds(
+    headers: httpx.Headers, secrets: list[str] | None = None
+) -> float:
     raw = headers.get("retry-after")
     if raw is None:
         return 0.0
@@ -359,7 +384,10 @@ def _retry_after_seconds(headers: httpx.Headers) -> float:
         try:
             when = parsedate_to_datetime(raw)
         except (TypeError, ValueError) as exc:
-            raise SafetyRejectionError(f"invalid Retry-After header: {raw!r}") from exc
+            scrubbed = scrub_secrets(raw, secrets or [])
+            raise SafetyRejectionError(
+                f"invalid Retry-After header: {scrubbed!r}"
+            ) from exc
         if when.tzinfo is None:
             when = when.replace(tzinfo=UTC)
         value = (when - datetime.now(tz=UTC)).total_seconds()
@@ -527,7 +555,7 @@ async def _execute_request(
                 body = await _read_body_limited(response)
                 await response.aclose()
                 break
-            delay = _retry_after_seconds(response.headers)
+            delay = _retry_after_seconds(response.headers, secrets=secrets)
             await response.aclose()
             await _sleep(delay)
             continue
@@ -680,14 +708,47 @@ async def execute_live_plan(
             f"plan exceeds maximum of {MAX_REQUESTS_PER_RUN} requests per run"
         )
 
-    for request in plan.requests:
-        validate_request(plan, request, allow_mutation)
-
-    token = _read_token(plan)
-    secrets = [token]
-    headers = _provider_headers(plan, token)
-    run_id = _new_run_id(plan.id)
     cmd = command or ["python", "-m", "ait.live_runner"]
+    run_id = _new_run_id(plan.id)
+    secrets: list[str] = []
+    token: str | None = None
+    try:
+        token = _read_token(plan)
+        secrets = [token]
+    except MissingCredentialsError:
+        # Preflight path/policy checks can still run and record blocked status;
+        # credential errors remain separate and write nothing.
+        token = None
+
+    def _blocked(reason: str, *, observations: list[LiveObservation] | None = None) -> None:
+        if output_root is None:
+            return
+        _write_status_artifact(
+            plan=plan,
+            run_id=run_id,
+            output_root=Path(output_root),
+            command=cmd,
+            status="blocked",
+            reason=scrub_secrets(reason, secrets),
+            secrets=secrets,
+            observations=observations or [],
+            evidence={"rejected_redirect_or_safety": True},
+            allow_mutation=allow_mutation,
+        )
+
+    try:
+        for request in plan.requests:
+            validate_request(plan, request, allow_mutation)
+    except SafetyRejectionError as exc:
+        _blocked(str(exc))
+        raise SafetyRejectionError(scrub_secrets(str(exc), secrets)) from None
+
+    if token is None:
+        raise MissingCredentialsError(
+            f"missing credentials: environment variable {plan.token_env} is not set"
+        )
+
+    headers = _provider_headers(plan, token)
 
     observations: list[LiveObservation] = []
     exchanges: list[CapturedExchange] = []
@@ -704,20 +765,9 @@ async def execute_live_plan(
                         client, plan, request, headers, index, run_id, secrets
                     )
                 except SafetyRejectionError as exc:
-                    if output_root is not None:
-                        _write_status_artifact(
-                            plan=plan,
-                            run_id=run_id,
-                            output_root=Path(output_root),
-                            command=cmd,
-                            status="blocked",
-                            reason=scrub_secrets(str(exc), secrets),
-                            secrets=secrets,
-                            observations=observations,
-                            evidence={"rejected_redirect_or_safety": True},
-                            allow_mutation=allow_mutation,
-                        )
-                    raise
+                    scrubbed = scrub_secrets(str(exc), secrets)
+                    _blocked(scrubbed, observations=observations)
+                    raise SafetyRejectionError(scrubbed) from None
                 observations.append(observation)
                 exchanges.append(exchange)
 
