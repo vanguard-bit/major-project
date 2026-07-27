@@ -47,4 +47,8 @@ select = ["E", "F", "I", "B", "UP"]
 # Typer requires Argument/Option defaults in function signatures.
 "ait/cli.py" = ["B008"]
 "ait/experiments/run_scenarios.py" = ["B008"]
+"ait/experiments/risk_sensitivity.py" = ["B008"]
+"ait/experiments/benchmark_analysis.py" = ["B008"]
+"ait/experiments/replay_incidents.py" = ["B008"]
+"ait/experiments/run_offline.py" = ["B008"]
 "ait/live_runner.py" = ["B008"]

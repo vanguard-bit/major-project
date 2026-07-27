@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
+from pydantic import BaseModel
+
 from ait.models import (
     CapturedExchange,
     Finding,
@@ -11,6 +13,32 @@ from ait.models import (
     Severity,
     TargetConfig,
 )
+
+
+class RiskWeights(BaseModel):
+    hidden_endpoint: float = 25.0
+    sensitive_field: float = 20.0
+    divergence: float = 15.0
+    cap: float = 100.0
+
+
+DEFAULT_RISK_WEIGHTS = RiskWeights()
+
+
+def calculate_risk_score(
+    hidden_endpoint_count: int,
+    sensitive_field_count: int,
+    divergence_count: int,
+    weights: RiskWeights = DEFAULT_RISK_WEIGHTS,
+) -> float:
+    if hidden_endpoint_count < 0 or sensitive_field_count < 0 or divergence_count < 0:
+        raise ValueError("negative counts are not allowed")
+    raw = (
+        hidden_endpoint_count * weights.hidden_endpoint
+        + sensitive_field_count * weights.sensitive_field
+        + divergence_count * weights.divergence
+    )
+    return min(weights.cap, raw)
 
 
 def extract_field_paths(value: Any, prefix: str = "") -> set[str]:
@@ -45,7 +73,9 @@ def analyze_run(
     run_id: str,
     target: TargetConfig,
     exchanges: list[CapturedExchange],
+    weights: RiskWeights | None = None,
 ) -> RunReport:
+    effective_weights = weights if weights is not None else DEFAULT_RISK_WEIGHTS
     findings: list[Finding] = []
     markers = set(target.sensitive_markers)
     reached_endpoints = sorted({exchange.path for exchange in exchanges})
@@ -130,9 +160,14 @@ def analyze_run(
                 )
             )
 
-    risk_score = min(
-        100,
-        len(hidden_endpoints) * 25 + len(sensitive_fields) * 20 + len(divergence_summary) * 15,
+    risk_score = round(
+        calculate_risk_score(
+            len(hidden_endpoints),
+            len(sensitive_fields),
+            len(divergence_summary),
+            weights=effective_weights,
+        ),
+        2,
     )
 
     return RunReport(

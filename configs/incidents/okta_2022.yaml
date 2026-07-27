@@ -1,0 +1,59 @@
+schema_version: "1.0.0"
+id: okta-2022-reconstruction
+incident_name: Okta 2022
+reconstruction: true
+source_urls:
+  - https://www.okta.com/blog/company-and-culture/oktas-investigation-of-the-january-2022-compromise/
+  - https://www.okta.com/blog/company-and-culture/okta-concludes-its-investigation-into-the-january-2022-compromise/
+source_accessed_utc: "2026-07-27T00:00:00Z"
+documented_behavior:
+  - >
+    Okta's March 2022 investigation post describes a January 2022 compromise of a
+    third-party customer support engineer workstation with access to Okta support
+    tooling, including the SuperUser application used to access customer tenants.
+  - >
+    Okta's concluding investigation states the threat actor accessed active customer
+    tenants within the SuperUser application during the controlled window.
+mapping_assumptions:
+  - >
+    AIT does not use Okta support logs. This reconstruction models SuperUser
+    customer-tenant access as an undeclared /reconstruction/excess-scope/ path
+    relative to a declared support-status allowlist endpoint.
+  - >
+    Customer tenant identifiers observed via support tooling are represented with
+    the synthetic sensitive marker customer_tenant_id.
+  - >
+    Baseline covers an allowlisted support status check; mutated adds the
+    reconstructed SuperUser tenant access path to induce behavioral divergence.
+target:
+  name: okta-2022-reconstruction
+  base_url: http://reconstruction.invalid/
+  integration_sync_url: http://reconstruction.invalid/sync
+  audit_base_url: http://reconstruction.invalid/
+  expected_endpoints:
+    - /reconstruction/support/status
+  sensitive_markers:
+    - customer_tenant_id
+exchanges:
+  - phase: baseline
+    method: GET
+    path: /reconstruction/support/status
+    response_body:
+      status: ready
+  - phase: mutated
+    method: GET
+    path: /reconstruction/support/status
+    response_body:
+      status: ready
+  - phase: mutated
+    method: GET
+    path: /reconstruction/excess-scope/superuser-tenant
+    response_body:
+      customer_tenant_id: "[RECONSTRUCTED-TENANT]"
+      action: view
+expected_labels:
+  - category: hidden_endpoint
+    endpoint: /reconstruction/excess-scope/superuser-tenant
+  - category: behavioral_divergence
+  - category: sensitive_field_access
+    endpoint: /reconstruction/excess-scope/superuser-tenant

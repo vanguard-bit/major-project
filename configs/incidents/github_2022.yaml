@@ -1,0 +1,62 @@
+schema_version: "1.0.0"
+id: github-2022-reconstruction
+incident_name: GitHub 2022
+reconstruction: true
+source_urls:
+  - https://github.blog/news-insights/company-news/security-alert-stolen-oauth-user-tokens/
+  - https://www.heroku.com/blog/april-2022-incident-review/
+source_accessed_utc: "2026-07-27T00:00:00Z"
+documented_behavior:
+  - >
+    GitHub's April 2022 security alert describes an attack campaign that abused
+    stolen OAuth user tokens issued to third-party integrators (Heroku and
+    Travis CI) to download private repository data from victim organizations.
+  - >
+    GitHub reported that a compromised AWS API key used against npm infrastructure
+    was obtained after private repositories were downloaded via a stolen OAuth token.
+mapping_assumptions:
+  - >
+    AIT does not replay GitHub's production OAuth telemetry. This fixture models
+    private-repository download beyond a declared public-metadata allowlist as a
+    synthetic /reconstruction/excess-scope/private-repo path.
+  - >
+    Discovery of cloud credentials inside cloned private content is represented
+    with the synthetic sensitive marker aws_access_key_id (value redacted /
+    reconstructed placeholder only).
+  - >
+    Mutated-phase addition of the private-repo path models integrator token abuse
+    relative to a constrained baseline integration surface.
+target:
+  name: github-2022-reconstruction
+  base_url: http://reconstruction.invalid/
+  integration_sync_url: http://reconstruction.invalid/sync
+  audit_base_url: http://reconstruction.invalid/
+  expected_endpoints:
+    - /reconstruction/oauth/public-metadata
+  sensitive_markers:
+    - aws_access_key_id
+exchanges:
+  - phase: baseline
+    method: GET
+    path: /reconstruction/oauth/public-metadata
+    response_body:
+      app: integrator
+      scope: metadata
+  - phase: mutated
+    method: GET
+    path: /reconstruction/oauth/public-metadata
+    response_body:
+      app: integrator
+      scope: metadata
+  - phase: mutated
+    method: GET
+    path: /reconstruction/excess-scope/private-repo
+    response_body:
+      repository: "[RECONSTRUCTED-PRIVATE]"
+      aws_access_key_id: "[RECONSTRUCTED]"
+expected_labels:
+  - category: hidden_endpoint
+    endpoint: /reconstruction/excess-scope/private-repo
+  - category: behavioral_divergence
+  - category: sensitive_field_access
+    endpoint: /reconstruction/excess-scope/private-repo

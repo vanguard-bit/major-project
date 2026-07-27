@@ -92,7 +92,7 @@ class RunReport(BaseModel):
     hidden_endpoints: list[str]
     sensitive_fields_accessed: list[str]
     divergence_summary: list[str]
-    risk_score: int
+    risk_score: float
     findings: list[Finding]
 
 

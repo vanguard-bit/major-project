@@ -1,0 +1,65 @@
+schema_version: "1.0.0"
+id: circleci-2023-reconstruction
+incident_name: CircleCI 2023
+reconstruction: true
+source_urls:
+  - https://circleci.com/blog/jan-4-2023-incident-report/
+  - https://circleci.com/blog/january-4-2023-security-alert/
+source_accessed_utc: "2026-07-27T00:00:00Z"
+documented_behavior:
+  - >
+    CircleCI's January 2023 incident report states that malware on an engineer's
+    laptop enabled theft of a valid 2FA-backed SSO session, after which the actor
+    escalated access to a subset of production systems.
+  - >
+    The same report states that exfiltrated material included customer environment
+    variables, tokens, and encryption keys.
+mapping_assumptions:
+  - >
+    AIT does not ingest CircleCI production telemetry. This fixture is a
+    researcher-constructed exchange pair that models excess production secret
+    retrieval as an undeclared endpoint under /reconstruction/.
+  - >
+    Customer environment variables / tokens / keys are represented as synthetic
+    sensitive markers (environment_variable, access_token, encryption_key)
+    rather than real secret values.
+  - >
+    The mutated phase adds the excess-scope secret retrieval path to model
+    post-compromise behavior relative to a constrained baseline allowlist.
+target:
+  name: circleci-2023-reconstruction
+  base_url: http://reconstruction.invalid/
+  integration_sync_url: http://reconstruction.invalid/sync
+  audit_base_url: http://reconstruction.invalid/
+  expected_endpoints:
+    - /reconstruction/ci/project-status
+  sensitive_markers:
+    - environment_variable
+    - access_token
+    - encryption_key
+exchanges:
+  - phase: baseline
+    method: GET
+    path: /reconstruction/ci/project-status
+    response_body:
+      project: demo
+      status: ok
+  - phase: mutated
+    method: GET
+    path: /reconstruction/ci/project-status
+    response_body:
+      project: demo
+      status: ok
+  - phase: mutated
+    method: GET
+    path: /reconstruction/excess-scope/production-secrets
+    response_body:
+      environment_variable: "[RECONSTRUCTED]"
+      access_token: "[RECONSTRUCTED]"
+      encryption_key: "[RECONSTRUCTED]"
+expected_labels:
+  - category: hidden_endpoint
+    endpoint: /reconstruction/excess-scope/production-secrets
+  - category: behavioral_divergence
+  - category: sensitive_field_access
+    endpoint: /reconstruction/excess-scope/production-secrets
