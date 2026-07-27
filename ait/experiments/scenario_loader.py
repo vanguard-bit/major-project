@@ -8,6 +8,13 @@ import yaml
 from ait.experiments.schema import ScenarioDefinition
 
 SCHEMA_EXAMPLE_NAME = "schema.example.yaml"
+PRIMARY_SUITES = frozenset({"crm", "platform"})
+EXTENDED_SUITES = frozenset({"robustness", "evasion"})
+ALL_SUITES = PRIMARY_SUITES | EXTENDED_SUITES
+# Excluded from suite=all so Phase 5 corpora do not enter primary offline metrics.
+EXCLUDED_FROM_ALL = frozenset({"robustness", "evasion"})
+SKIP_DIR_NAMES = frozenset({"invalid"})
+SKIP_FILE_NAMES = frozenset({"eva-malformed.yaml"})
 
 
 def normalize_path(path: str) -> str:
@@ -37,11 +44,19 @@ def load_scenario(path: Path) -> ScenarioDefinition:
     return ScenarioDefinition.model_validate(raw)
 
 
+def _is_excluded_from_all(path: Path, root: Path) -> bool:
+    try:
+        parts = path.relative_to(root).parts
+    except ValueError:
+        parts = path.parts
+    return any(part in EXCLUDED_FROM_ALL for part in parts)
+
+
 def discover_scenario_paths(root: Path, suite: str = "all") -> list[Path]:
     root = Path(root)
     if suite == "all":
         search_roots = [root]
-    elif suite in {"crm", "platform"}:
+    elif suite in ALL_SUITES:
         search_roots = [root / suite]
     else:
         raise ValueError(f"unsupported suite: {suite}")
@@ -51,7 +66,11 @@ def discover_scenario_paths(root: Path, suite: str = "all") -> list[Path]:
         if not search_root.exists():
             continue
         for path in sorted(search_root.rglob("*.yaml")):
-            if path.name == SCHEMA_EXAMPLE_NAME:
+            if path.name == SCHEMA_EXAMPLE_NAME or path.name in SKIP_FILE_NAMES:
+                continue
+            if any(part in SKIP_DIR_NAMES for part in path.parts):
+                continue
+            if suite == "all" and _is_excluded_from_all(path, root):
                 continue
             paths.append(path)
     return paths
@@ -70,6 +89,8 @@ def load_scenarios(root: Path, suite: str = "all") -> list[ScenarioDefinition]:
             raise ValueError(
                 f"scenario {scenario.id} has suite {scenario.suite!r}, expected {suite!r}"
             )
+        if suite == "all" and scenario.suite in EXCLUDED_FROM_ALL:
+            continue
         seen_ids[scenario.id] = path
         scenarios.append(scenario)
     return scenarios

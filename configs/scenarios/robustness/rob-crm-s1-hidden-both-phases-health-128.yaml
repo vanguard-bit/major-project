@@ -1,0 +1,2115 @@
+schema_version: 1.0.0
+id: rob-crm-s1-hidden-both-phases-health-128
+suite: robustness
+platform_style: generic-crm
+description: Inject 128 benign /health polls into each phase.
+target:
+  name: crm-s1-hidden-both-phases-health-128
+  environment: demo
+  base_url: http://mock.invalid/
+  integration_sync_url: http://integration.invalid/sync
+  audit_base_url: http://mock.invalid/
+  auth_type: static_token
+  token_config:
+    token: null
+    token_url: null
+    client_id: null
+    client_secret: null
+    scope: null
+  openapi_paths: []
+  seed_endpoints: []
+  expected_endpoints:
+  - /api/v1/customers
+  - /health
+  expected_scopes: []
+  sensitive_markers:
+  - billing_email
+  - tax_id
+  description: ''
+exchanges:
+- phase: baseline
+  method: GET
+  path: /api/v1/customers
+  status_code: 200
+  sequence: 0
+  request_body: null
+  response_body:
+  - customer_id: cust-001
+- phase: baseline
+  method: GET
+  path: /api/v1/customers/cust-001/billing
+  status_code: 200
+  sequence: 0
+  request_body: null
+  response_body:
+    plan: enterprise
+- phase: mutated
+  method: GET
+  path: /api/v1/customers
+  status_code: 200
+  sequence: 0
+  request_body: null
+  response_body:
+  - customer_id: cust-001
+- phase: mutated
+  method: GET
+  path: /api/v1/customers/cust-001/billing
+  status_code: 200
+  sequence: 0
+  request_body: null
+  response_body:
+    plan: enterprise
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 0
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 1
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 2
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 3
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 4
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 5
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 6
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 7
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 8
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 9
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 10
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 11
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 12
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 13
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 14
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 15
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 16
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 17
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 18
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 19
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 20
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 21
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 22
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 23
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 24
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 25
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 26
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 27
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 28
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 29
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 30
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 31
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 32
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 33
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 34
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 35
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 36
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 37
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 38
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 39
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 40
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 41
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 42
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 43
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 44
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 45
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 46
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 47
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 48
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 49
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 50
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 51
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 52
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 53
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 54
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 55
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 56
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 57
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 58
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 59
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 60
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 61
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 62
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 63
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 64
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 65
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 66
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 67
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 68
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 69
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 70
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 71
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 72
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 73
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 74
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 75
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 76
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 77
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 78
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 79
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 80
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 81
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 82
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 83
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 84
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 85
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 86
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 87
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 88
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 89
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 90
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 91
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 92
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 93
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 94
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 95
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 96
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 97
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 98
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 99
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 100
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 101
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 102
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 103
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 104
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 105
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 106
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 107
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 108
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 109
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 110
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 111
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 112
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 113
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 114
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 115
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 116
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 117
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 118
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 119
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 120
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 121
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 122
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 123
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 124
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 125
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 126
+  request_body: null
+  response_body:
+    status: ok
+- phase: baseline
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 127
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 0
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 1
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 2
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 3
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 4
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 5
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 6
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 7
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 8
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 9
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 10
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 11
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 12
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 13
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 14
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 15
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 16
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 17
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 18
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 19
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 20
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 21
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 22
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 23
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 24
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 25
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 26
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 27
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 28
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 29
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 30
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 31
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 32
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 33
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 34
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 35
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 36
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 37
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 38
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 39
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 40
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 41
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 42
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 43
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 44
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 45
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 46
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 47
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 48
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 49
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 50
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 51
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 52
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 53
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 54
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 55
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 56
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 57
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 58
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 59
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 60
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 61
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 62
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 63
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 64
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 65
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 66
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 67
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 68
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 69
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 70
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 71
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 72
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 73
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 74
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 75
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 76
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 77
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 78
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 79
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 80
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 81
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 82
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 83
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 84
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 85
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 86
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 87
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 88
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 89
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 90
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 91
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 92
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 93
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 94
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 95
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 96
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 97
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 98
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 99
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 100
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 101
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 102
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 103
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 104
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 105
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 106
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 107
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 108
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 109
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 110
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 111
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 112
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 113
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 114
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 115
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 116
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 117
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 118
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 119
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 120
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 121
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 122
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 123
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 124
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 125
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 126
+  request_body: null
+  response_body:
+    status: ok
+- phase: mutated
+  method: GET
+  path: /health
+  status_code: 200
+  sequence: 127
+  request_body: null
+  response_body:
+    status: ok
+expected_labels:
+- category: hidden_endpoint
+  endpoint: /api/v1/customers/cust-001/billing
+parent_scenario_id: crm-s1-hidden-both-phases
+labels_invariant: true
+observable_by_model: true

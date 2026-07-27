@@ -1,0 +1,39 @@
+{
+  "run_id": "fixture-ait",
+  "target_name": "comparison-target",
+  "status": "completed",
+  "reached_endpoints": [
+    "/health",
+    "/api/v1/items",
+    "/api/v1/items/item-1",
+    "/api/v1/hidden/export"
+  ],
+  "hidden_endpoints": ["/api/v1/hidden/export"],
+  "sensitive_fields_accessed": ["billing_email"],
+  "divergence_summary": [],
+  "risk_score": 45.0,
+  "findings": [
+    {
+      "severity": "high",
+      "category": "hidden_endpoint",
+      "endpoint": "/api/v1/hidden/export",
+      "title": "Hidden endpoint access detected",
+      "evidence": "fixture",
+      "expected_behavior": "fixture",
+      "observed_behavior": "fixture",
+      "confidence": 1.0,
+      "remediation_note": "fixture"
+    },
+    {
+      "severity": "critical",
+      "category": "sensitive_field_access",
+      "endpoint": "/api/v1/items/item-1",
+      "title": "Sensitive field access detected",
+      "evidence": "fixture",
+      "expected_behavior": "fixture",
+      "observed_behavior": "fixture",
+      "confidence": 1.0,
+      "remediation_note": "fixture"
+    }
+  ]
+}

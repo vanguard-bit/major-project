@@ -1,0 +1,9 @@
+{
+  "bug_buckets": [
+    {
+      "status_code": 500,
+      "description": "Internal Server Error on explode endpoint"
+    }
+  ],
+  "notes": "PARSER FIXTURE ONLY — not an experimental RESTler run."
+}

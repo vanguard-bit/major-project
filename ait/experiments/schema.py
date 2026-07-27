@@ -57,6 +57,7 @@ class ExchangeSpec(BaseModel):
     method: Literal["GET", "POST", "PUT", "PATCH", "DELETE"]
     path: str
     status_code: int = 200
+    sequence: int = 0
     request_body: dict[str, Any] | list[Any] | str | None = None
     response_body: dict[str, Any] | list[Any] | str | None = None
 
@@ -132,21 +133,26 @@ class ScenarioDefinition(BaseModel):
 
     schema_version: Literal["1.0.0"]
     id: str
-    suite: Literal["crm", "platform"]
+    suite: Literal["crm", "platform", "robustness", "evasion"]
     platform_style: str
     description: str
     target: ScenarioTargetConfig
     exchanges: list[ExchangeSpec] = Field(min_length=1)
     expected_labels: list[ExpectedLabel]
+    parent_scenario_id: str | None = None
+    labels_invariant: bool = True
+    observable_by_model: bool = True
 
     @model_validator(mode="after")
     def reject_duplicate_exchanges(self) -> ScenarioDefinition:
-        seen: set[tuple[str, str, str]] = set()
+        seen: set[tuple[str, str, str, int]] = set()
         for exchange in self.exchanges:
-            key = (exchange.phase, exchange.method, exchange.path)
+            key = (exchange.phase, exchange.method, exchange.path, exchange.sequence)
             if key in seen:
                 raise ValueError(
-                    f"duplicate exchange record: {exchange.phase} {exchange.method} {exchange.path}"
+                    "duplicate exchange record: "
+                    f"{exchange.phase} {exchange.method} {exchange.path} "
+                    f"sequence={exchange.sequence}"
                 )
             seen.add(key)
         return self

@@ -1,0 +1,34 @@
+schema_version: "1.0.0"
+seed: 20260727
+unit_of_analysis: scenario
+primary_categories:
+  - hidden_endpoint
+  - sensitive_field_access
+  - behavioral_divergence
+primary_metrics:
+  - per_category_precision
+  - per_category_recall
+  - per_category_f1
+  - micro_precision
+  - micro_recall
+  - micro_f1
+uncertainty:
+  method: wilson
+  confidence_level: 0.95
+repetitions:
+  deterministic_offline: 5
+failure_policy: count_detector_crash_as_miss
+scenario_globs:
+  primary:
+    - crm/**/*.yaml
+    - platform/**/*.yaml
+  robustness:
+    - robustness/**/*.yaml
+  evasion:
+    - evasion/**/*.yaml
+hypotheses:
+  H1: hidden endpoint labels are detected under benign log noise
+  H2: sensitive field labels are detected when exposure is partial but field names remain known
+  H3: endpoint order and harmless query variation do not create divergence
+  H4: aliased sensitive fields remain a known false negative
+  H5: delayed/out-of-band/shared-token cases remain outside the detector model

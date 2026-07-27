@@ -1,0 +1,93 @@
+openapi: 3.0.3
+info:
+  title: AIT Comparison Target
+  version: "1.0.0"
+  description: Isolated OpenAPI target for AIT / RESTler / EvoMaster comparison.
+paths:
+  /health:
+    get:
+      operationId: health
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+  /api/v1/items:
+    get:
+      operationId: listItems
+      responses:
+        "200":
+          description: Documented item list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [id, name]
+                  properties:
+                    id: {type: string}
+                    name: {type: string}
+  /api/v1/items/{item_id}:
+    get:
+      operationId: getItem
+      parameters:
+        - name: item_id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: Documented item
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, name]
+                properties:
+                  id: {type: string}
+                  name: {type: string}
+                  billing_email: {type: string}
+  /api/v1/items/{item_id}/explode:
+    get:
+      operationId: explodeItem
+      parameters:
+        - name: item_id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        "500":
+          description: Controlled server-side fault
+  /api/v1/items/{item_id}/schema-violation:
+    get:
+      operationId: schemaViolation
+      parameters:
+        - name: item_id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: Declares string name but returns integer
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, name]
+                properties:
+                  id: {type: string}
+                  name: {type: string}
+  /api/v1/hidden/export:
+    get:
+      operationId: hiddenExport
+      description: Undocumented endpoint for AIT client-policy comparison only.
+      responses:
+        "200":
+          description: Hidden export payload

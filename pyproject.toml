@@ -29,10 +29,11 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["ait*"]
+include = ["ait*", "comparison*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = "-ra"
 anyio_mode = "auto"
 
@@ -51,4 +52,6 @@ select = ["E", "F", "I", "B", "UP"]
 "ait/experiments/benchmark_analysis.py" = ["B008"]
 "ait/experiments/replay_incidents.py" = ["B008"]
 "ait/experiments/run_offline.py" = ["B008"]
+"ait/experiments/robustness.py" = ["B008"]
+"ait/experiments/reproducibility.py" = ["B008"]
 "ait/live_runner.py" = ["B008"]

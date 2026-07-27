@@ -1,0 +1,46 @@
+schema_version: 1.0.0
+id: rob-crm-c1-compliant-empty-bodies
+suite: robustness
+platform_style: generic-crm
+description: Response bodies with empty dict/list/null.
+target:
+  name: crm-c1-compliant-empty-bodies
+  environment: demo
+  base_url: http://mock.invalid/
+  integration_sync_url: http://integration.invalid/sync
+  audit_base_url: http://mock.invalid/
+  auth_type: static_token
+  token_config:
+    token: null
+    token_url: null
+    client_id: null
+    client_secret: null
+    scope: null
+  openapi_paths: []
+  seed_endpoints: []
+  expected_endpoints:
+  - /api/v1/customers
+  expected_scopes: []
+  sensitive_markers:
+  - billing_email
+  - tax_id
+  description: ''
+exchanges:
+- phase: baseline
+  method: GET
+  path: /api/v1/customers
+  status_code: 200
+  sequence: 0
+  request_body: null
+  response_body: {}
+- phase: mutated
+  method: GET
+  path: /api/v1/customers
+  status_code: 200
+  sequence: 0
+  request_body: null
+  response_body: []
+expected_labels: []
+parent_scenario_id: crm-c1-compliant
+labels_invariant: false
+observable_by_model: true
