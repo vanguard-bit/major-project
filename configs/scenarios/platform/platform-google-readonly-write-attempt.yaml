@@ -1,0 +1,41 @@
+schema_version: "1.0.0"
+id: platform-google-readonly-write-attempt
+suite: platform
+platform_style: google-inspired
+description: >
+  Google-style inspired scenario where a read-only policy still issues a
+  mutated-only write attempt against an undeclared documents path.
+target:
+  name: platform-google-readonly-write-attempt
+  base_url: http://google-style.invalid/
+  integration_sync_url: http://integration.invalid/sync
+  audit_base_url: http://google-style.invalid/
+  expected_endpoints:
+    - /api/drive/v3/files
+  sensitive_markers: []
+exchanges:
+  - phase: baseline
+    method: GET
+    path: /api/drive/v3/files
+    response_body:
+      files:
+        - id: file-1
+  - phase: mutated
+    method: GET
+    path: /api/drive/v3/files
+    response_body:
+      files:
+        - id: file-1
+  - phase: mutated
+    method: POST
+    path: /api/drive/v3/files/file-1/permissions
+    request_body:
+      role: writer
+      type: user
+    response_body:
+      id: perm-1
+      role: writer
+expected_labels:
+  - category: hidden_endpoint
+    endpoint: /api/drive/v3/files/file-1/permissions
+  - category: behavioral_divergence

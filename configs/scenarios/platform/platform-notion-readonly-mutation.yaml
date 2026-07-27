@@ -1,0 +1,41 @@
+schema_version: "1.0.0"
+id: platform-notion-readonly-mutation
+suite: platform
+platform_style: notion-inspired
+description: >
+  Notion-style inspired scenario where a read-only integration performs a
+  mutated-only write against an undeclared page children path.
+target:
+  name: platform-notion-readonly-mutation
+  base_url: http://notion-style.invalid/
+  integration_sync_url: http://integration.invalid/sync
+  audit_base_url: http://notion-style.invalid/
+  expected_endpoints:
+    - /v1/pages/page-001
+  sensitive_markers: []
+exchanges:
+  - phase: baseline
+    method: GET
+    path: /v1/pages/page-001
+    response_body:
+      id: page-001
+      object: page
+  - phase: mutated
+    method: GET
+    path: /v1/pages/page-001
+    response_body:
+      id: page-001
+      object: page
+  - phase: mutated
+    method: PATCH
+    path: /v1/blocks/page-001/children
+    request_body:
+      children:
+        - type: paragraph
+    response_body:
+      results:
+        - id: block-1
+expected_labels:
+  - category: hidden_endpoint
+    endpoint: /v1/blocks/page-001/children
+  - category: behavioral_divergence

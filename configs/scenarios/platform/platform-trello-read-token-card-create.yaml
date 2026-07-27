@@ -1,0 +1,41 @@
+schema_version: "1.0.0"
+id: platform-trello-read-token-card-create
+suite: platform
+platform_style: trello-inspired
+description: >
+  Trello-style inspired scenario where a read token creates a card through an
+  undeclared mutated-only cards path.
+target:
+  name: platform-trello-read-token-card-create
+  base_url: http://trello-style.invalid/
+  integration_sync_url: http://integration.invalid/sync
+  audit_base_url: http://trello-style.invalid/
+  expected_endpoints:
+    - /1/boards/board-1/cards
+  sensitive_markers: []
+exchanges:
+  - phase: baseline
+    method: GET
+    path: /1/boards/board-1/cards
+    response_body:
+      - id: card-1
+        name: Existing
+  - phase: mutated
+    method: GET
+    path: /1/boards/board-1/cards
+    response_body:
+      - id: card-1
+        name: Existing
+  - phase: mutated
+    method: POST
+    path: /1/cards
+    request_body:
+      idList: list-1
+      name: Created by integration
+    response_body:
+      id: card-2
+      name: Created by integration
+expected_labels:
+  - category: hidden_endpoint
+    endpoint: /1/cards
+  - category: behavioral_divergence

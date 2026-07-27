@@ -1,0 +1,32 @@
+schema_version: "1.0.0"
+id: platform-slack-compliant-bot
+suite: platform
+platform_style: slack-inspired
+description: >
+  Slack-style inspired compliant bot that stays within the declared
+  conversations list path across both phases.
+target:
+  name: platform-slack-compliant-bot
+  base_url: http://slack-style.invalid/
+  integration_sync_url: http://integration.invalid/sync
+  audit_base_url: http://slack-style.invalid/
+  expected_endpoints:
+    - /api/conversations.list
+  sensitive_markers:
+    - access_token_hint
+exchanges:
+  - phase: baseline
+    method: GET
+    path: /api/conversations.list
+    response_body:
+      channels:
+        - id: C001
+          name: general
+  - phase: mutated
+    method: GET
+    path: /api/conversations.list
+    response_body:
+      channels:
+        - id: C001
+          name: general
+expected_labels: []

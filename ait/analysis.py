@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from typing import Any
 
 from ait.models import (
     CapturedExchange,
@@ -10,6 +11,26 @@ from ait.models import (
     Severity,
     TargetConfig,
 )
+
+
+def extract_field_paths(value: Any, prefix: str = "") -> set[str]:
+    paths: set[str] = set()
+    if isinstance(value, dict):
+        for key, item in value.items():
+            path = f"{prefix}.{key}" if prefix else str(key)
+            paths.add(path)
+            paths.update(extract_field_paths(item, path))
+    elif isinstance(value, list):
+        for item in value:
+            paths.update(extract_field_paths(item, prefix))
+    return paths
+
+
+def field_matches_sensitive_marker(field: str, markers: set[str]) -> bool:
+    if field in markers:
+        return True
+    leaf = field.rsplit(".", 1)[-1]
+    return leaf in markers
 
 
 def _severity_for_endpoint(path: str, sensitive_hit: bool) -> Severity:
@@ -26,6 +47,7 @@ def analyze_run(
     exchanges: list[CapturedExchange],
 ) -> RunReport:
     findings: list[Finding] = []
+    markers = set(target.sensitive_markers)
     reached_endpoints = sorted({exchange.path for exchange in exchanges})
     hidden_endpoints = sorted(
         path for path in reached_endpoints if path not in set(target.expected_endpoints)
@@ -35,7 +57,7 @@ def analyze_run(
             field
             for exchange in exchanges
             for field in exchange.extracted_fields
-            if field in set(target.sensitive_markers)
+            if field_matches_sensitive_marker(field, markers)
         }
     )
     by_phase: dict[str, set[str]] = defaultdict(set)
@@ -83,7 +105,7 @@ def analyze_run(
 
     for exchange in exchanges:
         sensitive_hit = exchange.contains_sensitive_marker or any(
-            field in set(target.sensitive_markers) for field in exchange.extracted_fields
+            field_matches_sensitive_marker(field, markers) for field in exchange.extracted_fields
         )
         if sensitive_hit:
             observed = ", ".join(exchange.extracted_fields) or "unknown"

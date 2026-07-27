@@ -1,0 +1,41 @@
+schema_version: "1.0.0"
+id: platform-c1-no-hidden-endpoint
+suite: platform
+platform_style: generic-platform
+description: >
+  Category control for hidden_endpoint. Inspired offline fixture that stays on
+  allowlisted paths so the hidden-endpoint detector should remain silent.
+target:
+  name: platform-c1-no-hidden-endpoint
+  base_url: http://platform-control.invalid/
+  integration_sync_url: http://integration.invalid/sync
+  audit_base_url: http://platform-control.invalid/
+  expected_endpoints:
+    - /api/v1/resources
+    - /api/v1/resources/res-1
+  sensitive_markers:
+    - secret_payload
+exchanges:
+  - phase: baseline
+    method: GET
+    path: /api/v1/resources
+    response_body:
+      - id: res-1
+  - phase: baseline
+    method: GET
+    path: /api/v1/resources/res-1
+    response_body:
+      id: res-1
+      title: alpha
+  - phase: mutated
+    method: GET
+    path: /api/v1/resources
+    response_body:
+      - id: res-1
+  - phase: mutated
+    method: GET
+    path: /api/v1/resources/res-1
+    response_body:
+      id: res-1
+      title: alpha
+expected_labels: []

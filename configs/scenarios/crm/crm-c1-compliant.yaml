@@ -1,0 +1,29 @@
+schema_version: "1.0.0"
+id: crm-c1-compliant
+suite: crm
+platform_style: generic-crm
+description: Compliant control with allowlisted endpoints and no sensitive markers.
+target:
+  name: crm-c1-compliant
+  base_url: http://mock.invalid/
+  integration_sync_url: http://integration.invalid/sync
+  audit_base_url: http://mock.invalid/
+  expected_endpoints:
+    - /api/v1/customers
+  sensitive_markers:
+    - billing_email
+    - tax_id
+exchanges:
+  - phase: baseline
+    method: GET
+    path: /api/v1/customers
+    response_body:
+      - customer_id: cust-001
+        name: Aster Labs
+  - phase: mutated
+    method: GET
+    path: /api/v1/customers
+    response_body:
+      - customer_id: cust-001
+        name: Aster Labs
+expected_labels: []

@@ -1,0 +1,40 @@
+schema_version: "1.0.0"
+id: platform-c3-no-divergence
+suite: platform
+platform_style: generic-platform
+description: >
+  Category control for behavioral_divergence. Inspired offline fixture where
+  baseline and mutated phases reach the same endpoint set.
+target:
+  name: platform-c3-no-divergence
+  base_url: http://platform-control.invalid/
+  integration_sync_url: http://integration.invalid/sync
+  audit_base_url: http://platform-control.invalid/
+  expected_endpoints:
+    - /api/v1/items
+    - /api/v1/items/item-1
+  sensitive_markers: []
+exchanges:
+  - phase: baseline
+    method: GET
+    path: /api/v1/items
+    response_body:
+      - id: item-1
+  - phase: baseline
+    method: GET
+    path: /api/v1/items/item-1
+    response_body:
+      id: item-1
+      status: open
+  - phase: mutated
+    method: GET
+    path: /api/v1/items/item-1
+    response_body:
+      id: item-1
+      status: open
+  - phase: mutated
+    method: GET
+    path: /api/v1/items
+    response_body:
+      - id: item-1
+expected_labels: []

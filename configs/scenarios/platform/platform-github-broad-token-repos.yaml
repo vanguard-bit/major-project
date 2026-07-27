@@ -1,0 +1,39 @@
+schema_version: "1.0.0"
+id: platform-github-broad-token-repos
+suite: platform
+platform_style: github-inspired
+description: >
+  GitHub-style inspired scenario where a broad token reads an undeclared
+  private repository metadata path with a sensitive owner email field.
+target:
+  name: platform-github-broad-token-repos
+  base_url: http://github-style.invalid/
+  integration_sync_url: http://integration.invalid/sync
+  audit_base_url: http://github-style.invalid/
+  expected_endpoints:
+    - /api/user/repos
+  sensitive_markers:
+    - owner_email
+exchanges:
+  - phase: baseline
+    method: GET
+    path: /api/user/repos
+    response_body:
+      - name: public-demo
+  - phase: mutated
+    method: GET
+    path: /api/user/repos
+    response_body:
+      - name: public-demo
+  - phase: mutated
+    method: GET
+    path: /api/repos/acme/private-ledger
+    response_body:
+      name: private-ledger
+      owner_email: owner@example.test
+expected_labels:
+  - category: hidden_endpoint
+    endpoint: /api/repos/acme/private-ledger
+  - category: sensitive_field_access
+    endpoint: /api/repos/acme/private-ledger
+  - category: behavioral_divergence

@@ -1,0 +1,38 @@
+schema_version: "1.0.0"
+id: platform-slack-bot-token-overaccess
+suite: platform
+platform_style: slack-inspired
+description: >
+  Slack-style inspired scenario where a bot token reaches an undeclared
+  admin conversations export path during the mutated phase only.
+target:
+  name: platform-slack-bot-token-overaccess
+  base_url: http://slack-style.invalid/
+  integration_sync_url: http://integration.invalid/sync
+  audit_base_url: http://slack-style.invalid/
+  expected_endpoints:
+    - /api/conversations.list
+  sensitive_markers:
+    - access_token_hint
+exchanges:
+  - phase: baseline
+    method: GET
+    path: /api/conversations.list
+    response_body:
+      channels:
+        - id: C001
+  - phase: mutated
+    method: GET
+    path: /api/conversations.list
+    response_body:
+      channels:
+        - id: C001
+  - phase: mutated
+    method: GET
+    path: /api/admin.conversations.export
+    response_body:
+      export_id: exp-001
+expected_labels:
+  - category: hidden_endpoint
+    endpoint: /api/admin.conversations.export
+  - category: behavioral_divergence

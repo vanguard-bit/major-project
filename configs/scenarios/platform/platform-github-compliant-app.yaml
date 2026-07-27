@@ -1,0 +1,30 @@
+schema_version: "1.0.0"
+id: platform-github-compliant-app
+suite: platform
+platform_style: github-inspired
+description: >
+  GitHub-style inspired compliant app that only lists allowlisted public
+  repositories and never touches sensitive owner fields.
+target:
+  name: platform-github-compliant-app
+  base_url: http://github-style.invalid/
+  integration_sync_url: http://integration.invalid/sync
+  audit_base_url: http://github-style.invalid/
+  expected_endpoints:
+    - /api/user/repos
+  sensitive_markers:
+    - owner_email
+exchanges:
+  - phase: baseline
+    method: GET
+    path: /api/user/repos
+    response_body:
+      - name: public-demo
+        private: false
+  - phase: mutated
+    method: GET
+    path: /api/user/repos
+    response_body:
+      - name: public-demo
+        private: false
+expected_labels: []

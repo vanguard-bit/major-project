@@ -1,0 +1,32 @@
+schema_version: "1.0.0"
+id: platform-c2-no-sensitive-field
+suite: platform
+platform_style: generic-platform
+description: >
+  Category control for sensitive_field_access. Inspired offline fixture that
+  returns only non-sensitive fields on allowlisted paths.
+target:
+  name: platform-c2-no-sensitive-field
+  base_url: http://platform-control.invalid/
+  integration_sync_url: http://integration.invalid/sync
+  audit_base_url: http://platform-control.invalid/
+  expected_endpoints:
+    - /api/v1/profiles/me
+  sensitive_markers:
+    - ssn
+    - private_key
+exchanges:
+  - phase: baseline
+    method: GET
+    path: /api/v1/profiles/me
+    response_body:
+      display_name: Demo User
+      locale: en
+  - phase: mutated
+    method: GET
+    path: /api/v1/profiles/me
+    response_body:
+      display_name: Demo User
+      locale: en
+      theme: light
+expected_labels: []
