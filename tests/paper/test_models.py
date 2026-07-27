@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
 
 import pytest
@@ -166,3 +167,90 @@ def test_paper_artifacts_model_rejects_partial_ref():
                 },
             }
         )
+
+
+def test_live_artifact_selection_requires_completed(tmp_path: Path):
+    from ait.paper.models import validate_live_artifact
+
+    completed = tmp_path / "live_ok.json"
+    completed.write_text(
+        json.dumps(
+            {
+                "experiment": "live",
+                "configuration": {"run_status": "completed"},
+                "payload": {"status": "completed", "report": {}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    validate_live_artifact(completed)
+
+    status = tmp_path / "run.status.json"
+    status.write_text(
+        json.dumps(
+            {
+                "experiment": "live",
+                "payload": {"status": "blocked", "reason": "no creds"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="status artifact"):
+        validate_live_artifact(status)
+
+    failed = tmp_path / "live_fail.json"
+    failed.write_text(
+        json.dumps(
+            {
+                "experiment": "live",
+                "payload": {"status": "failed"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="not completed"):
+        validate_live_artifact(failed)
+
+    wrong_exp = tmp_path / "not_live.json"
+    wrong_exp.write_text(
+        json.dumps({"experiment": "scenarios", "payload": {"status": "completed"}}),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="experiment"):
+        validate_live_artifact(wrong_exp)
+
+
+def test_load_manifest_rejects_blocked_live_selection(tmp_path: Path):
+    blocked = tmp_path / "raw" / "live" / "x.status.json"
+    blocked.parent.mkdir(parents=True)
+    blocked.write_text(
+        json.dumps(
+            {
+                "experiment": "live",
+                "payload": {"status": "blocked"},
+                "provenance": {},
+                "configuration": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    digest = hashlib.sha256(blocked.read_bytes()).hexdigest()
+    manifest_path = tmp_path / "paper_artifacts.yaml"
+    manifest_path.write_text(
+        yaml.safe_dump(
+            {
+                "schema_version": "1.0.0",
+                "live_runs": {
+                    "github_readonly": {
+                        "path": str(blocked.relative_to(tmp_path)),
+                        "sha256": digest,
+                    },
+                    "github_smoke": None,
+                    "notion_readonly": None,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="status artifact|not completed"):
+        load_paper_artifacts_manifest(manifest_path, root=tmp_path)

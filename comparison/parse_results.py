@@ -4,6 +4,9 @@
 Parser fixtures under tests/comparison/fixtures/ are committed minimal native-
 output samples for unit tests only. They are NOT experimental runs and must not
 be cited as tool-comparison results.
+
+Run selection is explicit: pass --run tool=path (or a YAML/JSON config). This
+module never auto-picks the newest directory under results/raw/tool-comparison/.
 """
 
 from __future__ import annotations
@@ -14,6 +17,8 @@ import sys
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
+
+import yaml
 
 
 class DetectionStatus(StrEnum):
@@ -30,6 +35,7 @@ GROUND_TRUTH_COLUMNS = (
     "server_500",
     "openapi_violation",
 )
+KNOWN_TOOLS = ("ait", "restler", "evomaster")
 
 
 def _status_from_meta(run_dir: Path) -> DetectionStatus:
@@ -51,6 +57,10 @@ def parse_ait(run_dir: Path) -> dict[str, str]:
     if status_path.exists() and "NOT_RUN" in status_path.read_text(encoding="utf-8"):
         return {col: DetectionStatus.NOT_RUN.value for col in GROUND_TRUTH_COLUMNS} | {
             "run_status": DetectionStatus.NOT_RUN.value
+        }
+    if status_path.exists() and "ERROR" in status_path.read_text(encoding="utf-8"):
+        return {col: DetectionStatus.ERROR.value for col in GROUND_TRUTH_COLUMNS} | {
+            "run_status": DetectionStatus.ERROR.value
         }
     findings_path = run_dir / "findings.json"
     if not findings_path.exists():
@@ -159,28 +169,65 @@ def parse_evomaster(run_dir: Path) -> dict[str, str]:
     }
 
 
-def latest_run(tool_root: Path) -> Path | None:
-    if not tool_root.exists():
-        return None
-    runs = sorted([p for p in tool_root.iterdir() if p.is_dir()])
-    return runs[-1] if runs else None
+def load_run_selection(
+    *,
+    run_args: list[str] | None,
+    config_path: Path | None,
+) -> dict[str, Path]:
+    """Load explicit tool→run-dir mapping from --run flags and/or a config file."""
+    selected: dict[str, Path] = {}
+    if config_path is not None:
+        raw = yaml.safe_load(Path(config_path).read_text(encoding="utf-8"))
+        if not isinstance(raw, dict):
+            raise ValueError(f"run config must be a mapping: {config_path}")
+        runs = raw.get("runs", raw)
+        if not isinstance(runs, dict):
+            raise ValueError(f"run config 'runs' must be a mapping: {config_path}")
+        for tool, value in runs.items():
+            tool_key = str(tool).lower()
+            if tool_key not in KNOWN_TOOLS:
+                raise ValueError(f"unknown tool in config: {tool}")
+            if value is None:
+                continue
+            if isinstance(value, dict):
+                path_value = value.get("path")
+                if path_value is None:
+                    continue
+                selected[tool_key] = Path(str(path_value))
+            else:
+                selected[tool_key] = Path(str(value))
+    for item in run_args or []:
+        if "=" not in item:
+            raise ValueError(f"--run must be tool=path, got {item!r}")
+        tool, _, path_text = item.partition("=")
+        tool_key = tool.strip().lower()
+        if tool_key not in KNOWN_TOOLS:
+            raise ValueError(f"unknown tool in --run: {tool}")
+        selected[tool_key] = Path(path_text.strip())
+    return selected
 
 
-def parse_all(results_root: Path) -> list[dict[str, Any]]:
-    base = Path(results_root) / "raw" / "tool-comparison"
-    rows: list[dict[str, Any]] = []
+def parse_all(
+    results_root: Path,
+    *,
+    runs: dict[str, Path] | None = None,
+) -> list[dict[str, Any]]:
+    """Parse explicitly selected runs. Missing tools are NOT_RUN (no latest-dir pick)."""
+    del results_root  # retained for CLI compatibility; selection is explicit only
     parsers = {
         "ait": parse_ait,
         "restler": parse_restler,
         "evomaster": parse_evomaster,
     }
+    selected = runs or {}
+    rows: list[dict[str, Any]] = []
     for tool, parser in parsers.items():
-        run_dir = latest_run(base / tool)
+        run_dir = selected.get(tool)
         if run_dir is None:
             row = {col: DetectionStatus.NOT_RUN.value for col in GROUND_TRUTH_COLUMNS}
             row.update({"tool": tool, "run_status": DetectionStatus.NOT_RUN.value})
         else:
-            row = parser(run_dir)
+            row = parser(Path(run_dir))
             row["tool"] = tool
             row["run_dir"] = str(run_dir)
         rows.append(row)
@@ -193,7 +240,20 @@ def main(argv: list[str] | None = None) -> int:
         "--results-root",
         type=Path,
         default=Path("results"),
-        help="Repository results root containing raw/tool-comparison/",
+        help="Repository results root (unused for auto-selection; kept for compatibility)",
+    )
+    parser.add_argument(
+        "--run",
+        action="append",
+        default=[],
+        metavar="TOOL=PATH",
+        help="Explicit run directory (repeatable), e.g. --run restler=results/raw/tool-comparison/restler/ID",
+    )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=None,
+        help="YAML/JSON mapping of tool → path (or {runs: {tool: {path, sha256}}})",
     )
     parser.add_argument(
         "--output",
@@ -202,7 +262,12 @@ def main(argv: list[str] | None = None) -> int:
         help="Optional JSON output path",
     )
     args = parser.parse_args(argv)
-    rows = parse_all(args.results_root)
+    try:
+        selected = load_run_selection(run_args=args.run, config_path=args.config)
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
+    rows = parse_all(args.results_root, runs=selected)
     text = json.dumps(rows, indent=2, sort_keys=True)
     print(text)
     if args.output is not None:

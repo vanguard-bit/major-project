@@ -1,18 +1,39 @@
+# Comparison target for RESTler / EvoMaster / AIT.
+#
+# Full offline RESTler/EvoMaster toolchain images are heavy; this compose file
+# only hosts the shared OpenAPI target. Pin digests before claimed runs.
+# Prefer a locally prebuilt image with fastapi+uvicorn baked in — runtime
+# package installs are intentionally absent (see Dockerfile.comparison-target).
+#
+# Build once:
+#   docker build -t ait-comparison-target:local \
+#     -f comparison/Dockerfile.comparison-target comparison/
+#
+# Network: dedicated bridge so the target is not on the default compose
+# network shared with unrelated stacks. Host port 8080 remains published for
+# local clients and --network host tool containers. A fully `internal: true`
+# network would block that host publish path, so isolation here is
+# image-level (no runtime apt/pip) rather than denying host ingress.
+
 services:
   comparison-target:
-    image: python:3.12-slim@sha256:DIGEST_PLACEHOLDER_PIN_BEFORE_RUN
+    image: ait-comparison-target:local
     working_dir: /app
     volumes:
       - ./:/app:ro
     command:
       - python
-      - -c
-      - |
-        import subprocess, sys
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet", "fastapi==0.115.6", "uvicorn==0.34.0"])
-        subprocess.check_call([sys.executable, "-m", "uvicorn", "target_app:app", "--host", "0.0.0.0", "--port", "8080"])
+      - -m
+      - uvicorn
+      - target_app:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
     ports:
       - "8080:8080"
+    networks:
+      - comparison_net
     healthcheck:
       test:
         [
@@ -26,5 +47,6 @@ services:
       retries: 20
 
 networks:
-  default:
+  comparison_net:
     driver: bridge
+    name: ait_comparison_net

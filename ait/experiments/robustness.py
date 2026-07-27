@@ -563,22 +563,26 @@ async def run_robustness_suite(
         )
         write_artifact(raw_dir / f"{scenario.id}.json", envelope)
 
+    in_scope_results = [
+        {
+            "scenario_id": o.scenario_id,
+            "passed": _outcome_passed(o),
+            "expected_categories": sorted(c.value for c in o.expected_categories),
+            "observed_categories": sorted(c.value for c in o.observed_categories),
+        }
+        for o in in_scope_outcomes
+    ]
+    in_scope_passed = bool(in_scope_results) and all(r["passed"] for r in in_scope_results)
     summary: dict[str, Any] = {
         "protocol_sha256": digest,
         "seed": seed,
         "hypotheses": protocol["hypotheses"],
+        "in_scope_passed": in_scope_passed,
         "in_scope": {
             **_metrics_with_wilson(in_scope_outcomes, confidence),
             "scenario_count": len(in_scope_outcomes),
-            "scenario_results": [
-                {
-                    "scenario_id": o.scenario_id,
-                    "passed": _outcome_passed(o),
-                    "expected_categories": sorted(c.value for c in o.expected_categories),
-                    "observed_categories": sorted(c.value for c in o.observed_categories),
-                }
-                for o in in_scope_outcomes
-            ],
+            "passed": in_scope_passed,
+            "scenario_results": in_scope_results,
         },
         "model_boundary": {
             **_metrics_with_wilson(boundary_outcomes, confidence),
@@ -606,7 +610,8 @@ async def run_robustness_suite(
         },
         payload=summary,
     )
-    write_artifact(Path(output_root) / "derived" / "robustness_metrics.json", derived)
+    path = write_artifact(Path(output_root) / "derived" / "robustness_metrics.json", derived)
+    summary["_artifact_path"] = str(path)
     return summary
 
 
@@ -631,10 +636,12 @@ def main(
     )
     in_scope = summary["in_scope"]["scenario_count"]
     boundary = summary["model_boundary"]["scenario_count"]
+    status = "PASS" if summary["in_scope_passed"] else "FAIL"
     typer.echo(
-        f"Robustness complete: in_scope={in_scope} model_boundary={boundary} "
+        f"{status} robustness: in_scope={in_scope} model_boundary={boundary} "
         f"protocol_sha256={summary['protocol_sha256'][:12]}..."
     )
+    raise typer.Exit(0 if summary["in_scope_passed"] else 1)
 
 
 if __name__ == "__main__":

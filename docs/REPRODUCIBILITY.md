@@ -98,7 +98,7 @@ renderer never auto-selects “best” or “newest” runs.
 |---|---|
 | `live_runs.*` | `null` → tables show `NOT RUN` |
 | `tool_comparison` | `null` → `NOT RUN` |
-| `robustness_metrics` | `null` in default offline gate → `NOT RUN` |
+| `robustness_metrics` / `reproducibility` | required by offline Phase~5 gate and `make research-artifact` |
 
 ## 11. Ethics
 

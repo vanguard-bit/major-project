@@ -70,7 +70,11 @@ docker run --rm --network host \
 exit_code=$?
 set -e
 echo "exit_code=${exit_code}" >> "${OUT}/run_meta.txt"
-echo "status=COMPLETED" > "${OUT}/status.txt"
+if [[ "${exit_code}" -eq 0 ]]; then
+  echo "status=COMPLETED" > "${OUT}/status.txt"
+else
+  echo "status=ERROR exit_code=${exit_code}" | tee "${OUT}/status.txt"
+fi
 sha256sum "${OUT}"/* > "${OUT}/SHA256SUMS" 2>/dev/null || shasum -a 256 "${OUT}"/* > "${OUT}/SHA256SUMS"
 echo "RESTler artifacts written to ${OUT}"
 exit "${exit_code}"

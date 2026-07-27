@@ -14,7 +14,9 @@ from ait.experiments.benchmark_analysis import BenchmarkConfig, run_benchmark_pi
 from ait.experiments.metrics import evaluate_categories, micro_average
 from ait.experiments.mock_executor import execute_scenario
 from ait.experiments.replay_incidents import run_replay_pipeline
+from ait.experiments.reproducibility import run_reproducibility
 from ait.experiments.risk_sensitivity import run_sensitivity_pipeline
+from ait.experiments.robustness import run_robustness_suite
 from ait.experiments.run_scenarios import _outcome_payload, _print_outcome
 from ait.experiments.scenario_loader import load_scenarios
 from ait.experiments.schema import ScenarioOutcome, labels_exact_match
@@ -24,6 +26,8 @@ app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
 SEED = 20260727
 MANIFEST_NAME = "offline_manifest.json"
+DEFAULT_PROTOCOL = Path("configs/evaluation_protocol.yaml")
+REPRODUCIBILITY_REPS = 5
 
 
 def _sha256_file(path: Path) -> str:
@@ -127,13 +131,16 @@ def run_offline(
     benchmark_widths: list[int] | None = None,
     benchmark_warmups: int = 10,
     benchmark_repetitions: int = 100,
+    protocol_path: Path = DEFAULT_PROTOCOL,
+    reproducibility_repetitions: int = REPRODUCIBILITY_REPS,
 ) -> int:
     output_root = Path(output_root)
+    protocol_path = Path(protocol_path)
     produced: list[Path] = []
     # Invalidate any prior success claim before this run can complete.
     _invalidate_success_manifest(output_root)
 
-    typer.echo("=== 1/4 scenarios ===")
+    typer.echo("=== 1/6 scenarios ===")
     failures, outcomes = asyncio.run(
         _run_scenarios(scenario_root, output_root, command, produced)
     )
@@ -142,13 +149,13 @@ def run_offline(
         _invalidate_success_manifest(output_root)
         return 1
 
-    typer.echo("=== 2/4 risk sensitivity ===")
+    typer.echo("=== 2/6 risk sensitivity ===")
     rows = run_sensitivity_pipeline(
         outcomes, output_root, command, produced=produced
     )
     typer.echo(f"Sensitivity rows: {len(rows)}")
 
-    typer.echo("=== 3/4 incident replay ===")
+    typer.echo("=== 3/6 incident replay ===")
     try:
         replay_outcomes = run_replay_pipeline(
             incident_root, output_root, command, produced=produced
@@ -163,7 +170,7 @@ def run_offline(
         _invalidate_success_manifest(output_root)
         return 1
 
-    typer.echo("=== 4/4 benchmark ===")
+    typer.echo("=== 4/6 benchmark ===")
     widths = benchmark_widths if benchmark_widths is not None else [10, 50, 100, 500, 1000]
     try:
         config = BenchmarkConfig(
@@ -181,6 +188,65 @@ def run_offline(
         return 1
     typer.echo(f"Benchmark widths: {len(summaries)}")
 
+    typer.echo("=== 5/6 robustness ===")
+    try:
+        robustness = asyncio.run(
+            run_robustness_suite(scenario_root, protocol_path, output_root, command)
+        )
+    except (ValueError, ValidationError, FileNotFoundError) as exc:
+        typer.echo(f"Stopping: robustness failed ({exc})", err=True)
+        _invalidate_success_manifest(output_root)
+        return 1
+    rob_path = output_root / "derived" / "robustness_metrics.json"
+    if rob_path.is_file():
+        produced.append(rob_path)
+    # Track per-scenario robustness raw artifacts written this run.
+    raw_rob = output_root / "raw" / "robustness"
+    if raw_rob.is_dir():
+        for path in sorted(raw_rob.glob("*.json")):
+            if path not in produced:
+                produced.append(path)
+    if not robustness.get("in_scope_passed"):
+        typer.echo("Stopping: robustness in-scope suite failed.", err=True)
+        _invalidate_success_manifest(output_root)
+        return 1
+    typer.echo(
+        f"Robustness in-scope PASS "
+        f"({robustness['in_scope']['scenario_count']} scenarios)"
+    )
+
+    typer.echo(f"=== 6/6 reproducibility ({reproducibility_repetitions} reps) ===")
+    try:
+        repro = asyncio.run(
+            run_reproducibility(
+                scenario_root=scenario_root,
+                protocol_path=protocol_path,
+                output_root=output_root,
+                repetitions=reproducibility_repetitions,
+                command=command,
+            )
+        )
+    except (ValueError, ValidationError, FileNotFoundError) as exc:
+        typer.echo(f"Stopping: reproducibility failed ({exc})", err=True)
+        _invalidate_success_manifest(output_root)
+        return 1
+    repro_path = output_root / "derived" / "reproducibility.json"
+    if repro_path.is_file():
+        produced.append(repro_path)
+    if not repro.get("accepted"):
+        typer.echo(
+            f"Stopping: reproducibility failed "
+            f"({repro.get('identical_finding_category_sets')}/"
+            f"{repro.get('repetitions')} category sets).",
+            err=True,
+        )
+        _invalidate_success_manifest(output_root)
+        return 1
+    typer.echo(
+        f"Reproducibility PASS {repro['identical_finding_category_sets']}/"
+        f"{repro['repetitions']}"
+    )
+
     entries: list[dict[str, Any]] = []
     for path in produced:
         entries.append(
@@ -197,13 +263,20 @@ def run_offline(
         configuration={
             "scenario_root": str(scenario_root),
             "incident_root": str(incident_root),
+            "protocol_path": str(protocol_path),
             "benchmark": config.model_dump(mode="json"),
+            "reproducibility_repetitions": reproducibility_repetitions,
             "repo_root": str(repo_root),
         },
         payload={
             "artifacts": entries,
             "artifact_count": len(entries),
             "input_hashes": input_hashes,
+            "phase5": {
+                "robustness_in_scope_passed": True,
+                "reproducibility_accepted": True,
+                "reproducibility_repetitions": reproducibility_repetitions,
+            },
         },
     )
     _publish_manifest(output_root, manifest)
@@ -217,6 +290,7 @@ def main(
     output_root: Path = typer.Option(Path("results"), "--output-root"),
     scenario_root: Path = typer.Option(Path("configs/scenarios"), "--scenario-root"),
     incident_root: Path = typer.Option(Path("configs/incidents"), "--incident-root"),
+    protocol: Path = typer.Option(DEFAULT_PROTOCOL, "--protocol"),
     widths: str = typer.Option(
         "10,50,100,500,1000",
         "--widths",
@@ -224,6 +298,10 @@ def main(
     ),
     warmups: int = typer.Option(10, "--warmups"),
     repetitions: int = typer.Option(100, "--repetitions"),
+    reproducibility_repetitions: int = typer.Option(
+        REPRODUCIBILITY_REPS,
+        "--reproducibility-repetitions",
+    ),
 ) -> None:
     command = ["python", "-m", "ait.experiments.run_offline", *sys.argv[1:]]
     width_list = [int(p.strip()) for p in widths.split(",") if p.strip()]
@@ -235,6 +313,8 @@ def main(
         benchmark_widths=width_list,
         benchmark_warmups=warmups,
         benchmark_repetitions=repetitions,
+        protocol_path=protocol,
+        reproducibility_repetitions=reproducibility_repetitions,
     )
     raise typer.Exit(code)
 

@@ -4,20 +4,31 @@ Isolated OpenAPI target shared by AIT, RESTler, and EvoMaster. Compare only
 pre-declared observable outcomes. RESTler/EvoMaster target server faults; AIT
 targets client-policy conformance.
 
+## Isolation and images
+
+- `docker-compose.yml` uses an **internal** bridge network and a **locally
+  prebuilt** `ait-comparison-target:local` image (no runtime `apt`/`pip`).
+- Full offline RESTler/EvoMaster toolchain images are heavy; pin digests before
+  claiming a run. Until digests are pinned and images exist locally, harness
+  scripts exit with `status=NOT_RUN`.
+- Build the comparison target:
+
+```bash
+docker build -t ait-comparison-target:local \
+  -f comparison/Dockerfile.comparison-target comparison/
+```
+
 ## Pinned versions / digests
 
 Replace placeholders **before** any claimed experimental run:
 
 | Component | Pin |
 |---|---|
-| Comparison target base image | `python:3.12-slim@sha256:DIGEST_PLACEHOLDER_PIN_BEFORE_RUN` |
-| RESTler | `mcr.microsoft.com/restlerfuzzer/restler:DIGEST_PLACEHOLDER` |
-| EvoMaster | `webrandonyang/evomaster:DIGEST_PLACEHOLDER` |
+| Comparison target | `ait-comparison-target:local` (built from `Dockerfile.comparison-target`) |
+| RESTler | `mcr.microsoft.com/restlerfuzzer/restler@sha256:…` (set `RESTLER_IMAGE`) |
+| EvoMaster | `webrandonyang/evomaster@sha256:…` (set `EVOMASTER_IMAGE`) |
 | Wall-clock budget | 600 seconds (10 minutes) |
 | Seed | `20260727` |
-
-Until digests are pinned and images are present locally, `run_restler.sh` /
-`run_evomaster.sh` exit with `status=NOT_RUN`. That is expected.
 
 ## Ground-truth classes
 
@@ -34,10 +45,15 @@ Until digests are pinned and images are present locally, `run_restler.sh` /
 comparison/run_ait.sh
 comparison/run_restler.sh
 comparison/run_evomaster.sh
-uv run python comparison/parse_results.py
+# Explicit run paths required — never auto-picks "latest":
+uv run python comparison/parse_results.py \
+  --run ait=results/raw/tool-comparison/ait/<RUN_ID> \
+  --run restler=results/raw/tool-comparison/restler/<RUN_ID> \
+  --run evomaster=results/raw/tool-comparison/evomaster/<RUN_ID>
 ```
 
-Scripts fail clearly if Docker is missing. Outputs land under
+Scripts fail clearly if Docker is missing. Nonzero/timeout tool exits write
+`status=ERROR` (not `COMPLETED`). Outputs land under
 `results/raw/tool-comparison/<tool>/<run-id>/`.
 
 ## Parse statuses

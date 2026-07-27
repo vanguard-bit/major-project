@@ -49,6 +49,20 @@ claims:
       artifact: offline_manifest
       json_pointer: /payload/artifacts
     required: true
+  - id: robustness-suite
+    text_pattern: "robustness_results"
+    documents: [main.tex, report.tex]
+    evidence:
+      artifact: robustness_metrics
+      json_pointer: /payload/in_scope_passed
+    required: true
+  - id: reproducibility-5
+    text_pattern: "reproducib"
+    documents: [main.tex, report.tex]
+    evidence:
+      artifact: reproducibility
+      json_pointer: /payload/accepted
+    required: true
   - id: live-saas-results
     text_pattern: "live_results"
     documents: [main.tex, report.tex]
@@ -70,10 +84,19 @@ claims:
       artifact: tool_comparison
       json_pointer: /payload
     required: false
-  - id: robustness-suite
-    text_pattern: "robustness_results"
+  - id: weight-design-constants
+    kind: protocol_constant
+    text_pattern: "heuristic design constants|\\(25,\\s*20,\\s*15\\)"
     documents: [main.tex, report.tex]
     evidence:
-      artifact: robustness_metrics
+      artifact: scenario_metrics
+      json_pointer: /payload
+    required: false
+  - id: example-assessment-sequence
+    kind: example
+    text_pattern: "non-measured example sequence|example sequence"
+    documents: [main.tex]
+    evidence:
+      artifact: scenario_metrics
       json_pointer: /payload
     required: false

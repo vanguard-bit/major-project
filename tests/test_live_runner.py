@@ -116,6 +116,20 @@ def test_reject_more_than_20_requests() -> None:
         LivePlan.model_validate(_minimal_plan(requests=requests))
 
 
+def test_live_plan_forbids_extra_fields() -> None:
+    with pytest.raises(ValidationError):
+        LivePlan.model_validate(_minimal_plan(unexpected_field=True))
+    with pytest.raises(ValidationError):
+        LivePlan.model_validate(
+            _minimal_plan(requests=[{"method": "GET", "path": "/user", "extra": 1}])
+        )
+
+
+def test_live_plan_requires_at_least_one_request() -> None:
+    with pytest.raises(ValidationError):
+        LivePlan.model_validate(_minimal_plan(requests=[]))
+
+
 def test_reject_mutation_without_allow_flag() -> None:
     plan = LivePlan.model_validate(
         _minimal_plan(

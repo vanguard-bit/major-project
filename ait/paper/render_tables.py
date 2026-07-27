@@ -377,22 +377,72 @@ def _live_rows(manifest: PaperArtifactsManifest) -> list[dict[str, Any]]:
 
 def _robustness_context(doc: dict[str, Any] | None) -> dict[str, Any]:
     if doc is None:
-        return {"available": False, "rows": [{"label": "Robustness suite", "status": "NOT RUN"}]}
+        return {
+            "available": False,
+            "rows": [{"label": "Robustness suite", "status": "NOT RUN"}],
+        }
     payload = doc.get("payload", {})
-    rows = []
-    for key in sorted(payload.keys()):
-        value = payload[key]
-        if isinstance(value, dict) and "passed" in value:
-            rows.append(
-                {
-                    "label": key,
-                    "status": "PASS" if value.get("passed") else "FAIL",
-                }
-            )
-        elif key in {"in_scope", "boundary", "scenarios"}:
-            rows.append({"label": key, "status": str(value)[:80]})
+    rows: list[dict[str, Any]] = []
+
+    def _slice_rows(label: str, slice_payload: dict[str, Any]) -> None:
+        micro = slice_payload.get("micro") or {}
+        count = int(slice_payload.get("scenario_count", 0))
+        passed = slice_payload.get("passed")
+        if passed is None and "scenario_results" in slice_payload:
+            results = slice_payload.get("scenario_results") or []
+            passed = bool(results) and all(r.get("passed") for r in results)
+        status = "PASS" if passed else ("FAIL" if passed is False else "---")
+        prec_iv = micro.get("precision_interval") or {}
+        rec_iv = micro.get("recall_interval") or {}
+        rows.append(
+            {
+                "label": latex_escape(f"{label} (n={count})"),
+                "status": status,
+            }
+        )
+        rows.append(
+            {
+                "label": latex_escape(f"{label} micro P/R/F1"),
+                "status": (
+                    f"{format_metric(micro.get('precision'))}/"
+                    f"{format_metric(micro.get('recall'))}/"
+                    f"{format_metric(micro.get('f1'))}"
+                ),
+            }
+        )
+        rows.append(
+            {
+                "label": latex_escape(f"{label} Wilson P/R"),
+                "status": (
+                    f"[{format_metric(prec_iv.get('lower'))},"
+                    f"{format_metric(prec_iv.get('upper'))}] / "
+                    f"[{format_metric(rec_iv.get('lower'))},"
+                    f"{format_metric(rec_iv.get('upper'))}]"
+                ),
+            }
+        )
+        rows.append(
+            {
+                "label": latex_escape(f"{label} counts TP/FP/FN/TN"),
+                "status": (
+                    f"{int(micro.get('tp', 0))}/{int(micro.get('fp', 0))}/"
+                    f"{int(micro.get('fn', 0))}/{int(micro.get('tn', 0))}"
+                ),
+            }
+        )
+
+    in_scope = payload.get("in_scope")
+    if isinstance(in_scope, dict):
+        _slice_rows("in_scope", in_scope)
+    boundary = payload.get("model_boundary")
+    if isinstance(boundary, dict):
+        _slice_rows("model_boundary", boundary)
+    if payload.get("in_scope_passed") is True:
+        rows.insert(0, {"label": latex_escape("in_scope_passed"), "status": "PASS"})
+    elif payload.get("in_scope_passed") is False:
+        rows.insert(0, {"label": latex_escape("in_scope_passed"), "status": "FAIL"})
     if not rows:
-        rows.append({"label": "robustness_metrics", "status": "present"})
+        rows.append({"label": latex_escape("robustness_metrics"), "status": "present"})
     return {"available": True, "rows": rows}
 
 
@@ -434,6 +484,7 @@ def _provenance_rows(manifest: PaperArtifactsManifest, root: Path) -> list[dict[
     for name in (
         "tool_comparison",
         "robustness_metrics",
+        "reproducibility",
         "github_readonly",
         "github_smoke",
         "notion_readonly",

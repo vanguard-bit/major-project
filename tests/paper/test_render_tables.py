@@ -84,3 +84,54 @@ def test_unavailable_rows_never_zero_success(tmp_path: Path):
     assert "BLOCKED" in live or "NOT RUN" in live
     for bad in ("No FP", "No finding"):
         assert bad not in live
+
+
+def test_robustness_renderer_uses_model_boundary_metrics():
+    from ait.paper.render_tables import _robustness_context
+
+    doc = {
+        "payload": {
+            "in_scope_passed": True,
+            "in_scope": {
+                "scenario_count": 2,
+                "passed": True,
+                "micro": {
+                    "precision": 1.0,
+                    "recall": 1.0,
+                    "f1": 1.0,
+                    "tp": 2,
+                    "fp": 0,
+                    "fn": 0,
+                    "tn": 0,
+                    "precision_interval": {"lower": 0.3, "upper": 1.0},
+                    "recall_interval": {"lower": 0.3, "upper": 1.0},
+                },
+            },
+            "model_boundary": {
+                "scenario_count": 1,
+                "passed": False,
+                "micro": {
+                    "precision": None,
+                    "recall": 0.0,
+                    "f1": None,
+                    "tp": 0,
+                    "fp": 0,
+                    "fn": 1,
+                    "tn": 0,
+                    "precision_interval": {"lower": None, "upper": None},
+                    "recall_interval": {"lower": 0.0, "upper": 0.8},
+                },
+            },
+        }
+    }
+    ctx = _robustness_context(doc)
+    assert ctx["available"] is True
+    labels = " ".join(row["label"] for row in ctx["rows"])
+    statuses = " ".join(row["status"] for row in ctx["rows"])
+    assert "model" in labels and "boundary" in labels
+    assert "in" in labels and "scope" in labels
+    assert "1.000" in statuses
+    assert "PASS" in statuses
+    assert "0.300" in statuses  # Wilson lower
+    assert "{'micro'" not in statuses
+    assert "scenario_results" not in statuses

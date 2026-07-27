@@ -313,7 +313,7 @@ false negative cases in Chapter~\ref{ch:fn} (Figure~\ref{fig:fn-overview}).
         \draw[arrow, dashed] (d3.north) -- ([xshift=3.6cm]obs.south);
     \end{tikzpicture}
     \caption{Threat capabilities (C1--C3) mapped to AIT detection mechanisms (DM1--DM3).
-             DM4 (live policy violations) extends DM1-style checks to real provider APIs.}
+             Live allow/deny expectation checks remain future work / out of scope.}
     \label{fig:threat-map}
 \end{figure}
 
@@ -717,9 +717,9 @@ fields intersect \texttt{sensitive\_markers} yields a CRITICAL-severity
 where $M$ = mutated-phase endpoint set, $B$ = baseline-phase endpoint set. Non-empty $D$
 yields a HIGH-severity \texttt{BEHAVIORAL\_DIVERGENCE} finding.
 
-\textbf{DM4 --- Policy Violation Detection (live runner):}
-When a request marked \texttt{expected\_behavior: denied} returns a success HTTP status
-(or vice versa), a \texttt{POLICY\_VIOLATION} finding is raised.
+Allow/deny expectation checks against live HTTP status codes are out of scope for the
+current release (future work / not yet implemented); the live runner reuses DM1--DM3 on
+captured exchanges only.
 Figure~\ref{fig:dm-map} consolidates the mapping from threat classes to detectors and severities.
 
 \begin{figure}[H]
@@ -746,10 +746,6 @@ Figure~\ref{fig:dm-map} consolidates the mapping from threat classes to detector
             DM3: $D = M \setminus B$ &
             \texttt{BEHAVIORAL\_DIVERGENCE} &
             HIGH \\
-        Live policy &
-            DM4: allow/deny &
-            \texttt{POLICY\_VIOLATION} &
-            HIGH ($+30$) \\
         \bottomrule
     \end{tabular}
     }
@@ -763,9 +759,8 @@ Figure~\ref{fig:dm-map} consolidates the mapping from threat classes to detector
 Under black-box observation of traffic recorded in the audit log and relative to a supplied
 \texttt{TargetConfig}, AIT reports: (G1) any reached path outside \texttt{expected\_endpoints};
 (G2) responses whose extracted fields intersect \texttt{sensitive\_markers} or carry the
-synthetic taint flag; (G3) phase-specific endpoint-set differences consistent with DM3; and
-(G4) requests whose actual HTTP status contradicts the declared \texttt{expected\_behavior} in
-live scenarios. These are sound with respect to the observed run --- they do not prove absence
+synthetic taint flag; and (G3) phase-specific endpoint-set differences consistent with DM3.
+These are sound with respect to the observed run --- they do not prove absence
 of violations outside the logged surface.
 
 \section{Risk Scoring Model}
@@ -774,13 +769,13 @@ of violations outside the logged surface.
     S = \min\!\bigl(100,\; w_H \cdot |H| + w_F \cdot |F_s| + w_D \cdot |D|\bigr)
 \]
 
-Weights $(w_H, w_F, w_D) = (25, 20, 15)$ are calibrated to the CVSS v3.1 severity taxonomy
-\cite{cvss31}: C1 maps to Scope:Changed/Confidentiality:High (base score 7.5--9.0, $w_H=25$);
+Weights $(w_H, w_F, w_D) = (25, 20, 15)$ are heuristic design constants inspired by the
+CVSS v3.1 severity taxonomy
+\cite{cvss31} (not empirically calibrated scores): C1 maps to Scope:Changed/Confidentiality:High (base score 7.5--9.0, $w_H=25$);
 C2 maps to Confidentiality:High without scope change (6.5--7.5, $w_F=20$); C3 represents
 architectural risk without confirmed data access (4.0--6.0, $w_D=15$). Score bands: 0--25
-(Low), 26--50 (Medium), 51--75 (High), 76--100 (Critical). In the live runner, each
-\texttt{POLICY\_VIOLATION} finding contributes an additional $+30$ to the risk score (capped
-at 100). Figure~\ref{fig:risk-bands} shows the score bands used for triage.
+(Low), 26--50 (Medium), 51--75 (High), 76--100 (Critical).
+Figure~\ref{fig:risk-bands} shows the score bands used for triage.
 
 \begin{figure}[H]
     \centering
@@ -798,8 +793,7 @@ at 100). Figure~\ref{fig:risk-bands} shows the score bands used for triage.
         \node at (6.5,0.5) {High};
         \node at (10.4,0.5) {Critical};
         \node[below=0.55cm, font=\scriptsize, text width=12cm, align=center] at (6.5,0) {%
-            $S = \min(100,\, 25|H| + 20|F_s| + 15|D|)$ \quad
-            (live \texttt{POLICY\_VIOLATION}: $+30$ each, capped at 100)%
+            $S = \min(100,\, 25|H| + 20|F_s| + 15|D|)$%
         };
     \end{tikzpicture}
     \caption{Risk score bands for aggregate triage. Scenario~S3 (one hidden endpoint, two
@@ -1039,13 +1033,13 @@ def analyze_run(
 
 \begin{lstlisting}[
     style=pythonstyle,
-    caption={Live SaaS runner implementing DM4 (policy violation detection).},
+    caption={Live SaaS runner sketch: allowlisted GETs and DM1--DM3 analysis (allow/deny expectation checks are future work).},
     label={lst:live-runner}
 ]
 import os
 import httpx
 import yaml
-from analysis import TargetConfig, Finding
+from analysis import TargetConfig, analyze_run
 
 
 def run_live_scenario(scenario_file: str) -> dict:
@@ -1056,31 +1050,19 @@ def run_live_scenario(scenario_file: str) -> dict:
     token    = os.environ[scenario["token_env_var"]]
     base_url = scenario["base_url"]
     headers  = {"Authorization": f"Bearer {token}"}
-    findings  = []
+    exchanges = []
 
     for request in scenario["requests"]:
-        resp     = httpx.get(f"{base_url}{request['path']}", headers=headers)
-        expected = request.get("expected_behavior", "allow")
+        resp = httpx.get(f"{base_url}{request['path']}", headers=headers)
+        exchanges.append({
+            "path": request["path"],
+            "status_code": resp.status_code,
+            "phase": request.get("phase", "baseline"),
+        })
 
-        # DM4 -- Policy Violation Detection
-        if expected == "denied" and resp.status_code == 200:
-            findings.append(Finding(
-                category="POLICY_VIOLATION",
-                severity="HIGH",
-                detail=f"Expected denial on {request['path']}; "
-                       f"got HTTP {resp.status_code}"
-            ))
-        elif expected == "allow" and resp.status_code not in (200, 201):
-            findings.append(Finding(
-                category="POLICY_VIOLATION",
-                severity="MEDIUM",
-                detail=f"Expected success on {request['path']}; "
-                       f"got HTTP {resp.status_code}"
-            ))
-
-    risk = min(100, sum(30 for f in findings
-                        if f.category == "POLICY_VIOLATION"))
-    return {"findings": findings, "risk_score": risk}
+    # Live path reuses DM1--DM3 via analyze_run; allow/deny checks are out of scope.
+    report = analyze_run(scenario["id"], TargetConfig(**scenario["target"]), exchanges)
+    return {"findings": report.findings, "risk_score": report.risk_score}
 \end{lstlisting}
 
 \subsection{Functional Requirements}
@@ -1120,13 +1102,10 @@ goals into concrete implementation behaviours.
     FR-8 & Sensitive Field (DM2) &
         The system MUST raise a CRITICAL-severity \texttt{SENSITIVE\_FIELD\_ACCESS} finding
         whenever a response contains a value matching \texttt{sensitive\_markers}.             \\[6pt]
-    FR-9 & Policy Violation (DM4)&
-        The live runner MUST raise a HIGH-severity \texttt{POLICY\_VIOLATION} finding
-        when a request declared \texttt{expected\_behavior: denied} returns HTTP 200.          \\[6pt]
-    FR-10 & Structured Output    &
+    FR-9 & Structured Output    &
         The system MUST produce a structured JSON \texttt{RunReport} for SIEM ingestion
         and CI/CD gating.                                                                      \\[6pt]
-    FR-11 & Risk Score           &
+    FR-10 & Risk Score           &
         The system MUST compute $S = \min(100,\,25|H|+20|F_s|+15|D|)$ and classify it
         into Low / Medium / High / Critical bands.                                             \\
     \bottomrule
@@ -1142,7 +1121,7 @@ goals into concrete implementation behaviours.
 The evaluation has five components:
 
 \begin{itemize}
-    \item \textbf{Controlled mock-environment experiments:} A three-scenario CRM suite isolating each detection mechanism, and a seven-scenario platform-inspired suite spanning heterogeneous REST idioms with compliant baselines.
+    \item \textbf{Controlled mock-environment experiments:} A 16-scenario offline corpus --- 6~CRM scenarios (3~isolation + 3~controls) and 10~platform-inspired mocks (7~violation-oriented + 3~compliant controls).
     \item \textbf{Live SaaS evaluation:} Executing explicit sandbox scenarios against real provider APIs (GitHub and Notion).
     \item \textbf{Read-only GitHub REST smoke probe:} Under an explicit allowlist policy.
     \item \textbf{Tool capability comparison:} With RESTler and EvoMaster.
@@ -1219,9 +1198,13 @@ mismatch relative to the allowlist, not server-side exploitability.
 
 \section{Robustness and Noise}
 
+% CLAIM:robustness-suite
+% CLAIM:reproducibility-5
 Robustness and evasion YAML cover noise, partial exposure, path ambiguity, FN4
-field-alias negatives, and model-boundary cases. Table~\ref{tab:robust} reports
-selected-artifact status or \texttt{NOT RUN}.
+field-alias negatives, and model-boundary cases. Table~\ref{tab:robust}
+(\texttt{robustness\_results}) reports selected-artifact status from the offline
+release gate. Deterministic reproducibility across five repetitions is recorded
+in the hashed \texttt{reproducibility} artifact.
 
 \begin{table}[H]
     \centering
@@ -1242,7 +1225,7 @@ reports \texttt{NOT RUN} (RESTler/EvoMaster were not claimed as executed for thi
     \input{results/generated/tool_comparison.tex}
 \end{table}
 
-\section{Log-Based Replay: Real-Data Signal}
+\section{Log-Based Replay: Researcher-Constructed Traces}
 
 % CLAIM:replay-exact-match
 Researcher-constructed traces from public disclosures (CircleCI 2023, Okta 2022,
@@ -1382,13 +1365,15 @@ for two sandbox accounts (GitHub and Notion) whose Task~6 empirical rows are
 evaluated tenant-wide on live production SaaS platforms; this remains the primary limitation.
 
 \textbf{L2: Evaluation Scale.}
-The CRM isolation suite uses three scenarios; the platform-inspired suite adds seven YAML-defined
-policies; live sandbox plans exist but empirical runs are blocked. A larger, more adversarial test suite is
+The offline mock corpus comprises 16~YAML scenarios: 6~CRM (3~isolation + 3~controls) and
+10~platform-inspired (7~violation-oriented + 3~compliant controls); live sandbox plans exist but empirical runs are
+blocked. A larger, more adversarial test suite is
 needed.
 
 \textbf{L3: Scoring Model.}
-The CVSS-calibrated weights are justified and sensitivity-analysed, but not empirically validated
-against a ground-truth dataset of real integration violations.
+The heuristic design-constant weights are justified and sensitivity-analysed, but not empirically validated
+against a ground-truth dataset of real integration violations. Allow/deny live policy checks remain
+future work / not yet implemented.
 
 \textbf{L4: Two-Phase Model Coverage.}
 Real integrations may exhibit variation across more state dimensions than two phases can capture
@@ -1432,7 +1417,7 @@ Formalise CI/CD pipeline integration enabling automated regression testing on ea
 deployment, gating merges when policy drift is detected.
 
 \textbf{F8: Empirical Risk-Weight Calibration.}
-Validate CVSS-calibrated weights against a labelled dataset of real integration violations.
+Validate heuristic design-constant weights against a labelled dataset of real integration violations.
 
 % ══════════════════════════════════════════════════════════════════════════════
 \chapter{Conclusion}

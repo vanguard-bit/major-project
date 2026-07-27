@@ -88,12 +88,18 @@ def analyze_run(
     exchanges: list[CapturedExchange],
     weights: RiskWeights | None = None,
 ) -> RunReport:
+    from ait.experiments.scenario_loader import normalize_path
+
     effective_weights = weights if weights is not None else DEFAULT_RISK_WEIGHTS
     findings: list[Finding] = []
     markers = set(target.sensitive_markers)
-    reached_endpoints = sorted({exchange.path for exchange in exchanges})
+    expected_endpoints = {normalize_path(path) for path in target.expected_endpoints}
+    normalized_exchanges = [
+        (exchange, normalize_path(exchange.path)) for exchange in exchanges
+    ]
+    reached_endpoints = sorted({path for _, path in normalized_exchanges})
     hidden_endpoints = sorted(
-        path for path in reached_endpoints if path not in set(target.expected_endpoints)
+        path for path in reached_endpoints if path not in expected_endpoints
     )
     sensitive_fields = sorted(
         {
@@ -104,8 +110,8 @@ def analyze_run(
         }
     )
     by_phase: dict[str, set[str]] = defaultdict(set)
-    for exchange in exchanges:
-        by_phase[exchange.phase].add(exchange.path)
+    for exchange, path in normalized_exchanges:
+        by_phase[exchange.phase].add(path)
 
     baseline_only = sorted(by_phase.get("baseline", set()) - by_phase.get("mutated", set()))
     mutated_only = sorted(by_phase.get("mutated", set()) - by_phase.get("baseline", set()))
@@ -146,7 +152,7 @@ def analyze_run(
             )
         )
 
-    for exchange in exchanges:
+    for exchange, path in normalized_exchanges:
         sensitive_hit = exchange.contains_sensitive_marker or any(
             field_matches_sensitive_marker(field, markers) for field in exchange.extracted_fields
         )
@@ -154,12 +160,12 @@ def analyze_run(
             observed = ", ".join(exchange.extracted_fields) or "unknown"
             findings.append(
                 Finding(
-                    severity=_severity_for_endpoint(exchange.path, True),
+                    severity=_severity_for_endpoint(path, True),
                     category=FindingCategory.SENSITIVE_FIELD_ACCESS,
-                    endpoint=exchange.path,
+                    endpoint=path,
                     title="Sensitive marker accessed",
                     evidence=(
-                        f"Response from {exchange.path} contained a configured sensitive marker."
+                        f"Response from {path} contained a configured sensitive marker."
                     ),
                     expected_behavior=(
                         "Sensitive marker fields should not be retrieved unless "

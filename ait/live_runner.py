@@ -16,7 +16,7 @@ import anyio
 import httpx
 import typer
 import yaml
-from pydantic import BaseModel, Field, HttpUrl, field_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 
 from ait.analysis import analyze_run, extract_field_paths
 from ait.artifacts import (
@@ -71,6 +71,8 @@ class RequestFailureError(Exception):
 
 
 class LiveRequestSpec(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     method: Literal["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"]
     path: str
     phase: Literal["baseline", "mutated"] = "baseline"
@@ -78,6 +80,8 @@ class LiveRequestSpec(BaseModel):
 
 
 class LivePlan(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     schema_version: Literal["1.0.0"]
     id: str
     provider: Literal["github", "notion"]
@@ -87,7 +91,10 @@ class LivePlan(BaseModel):
     token_env: str
     expected_endpoints: list[str]
     sensitive_markers: list[str]
-    requests: list[LiveRequestSpec] = Field(max_length=MAX_REQUESTS_PER_RUN)
+    requests: list[LiveRequestSpec] = Field(
+        min_length=1,
+        max_length=MAX_REQUESTS_PER_RUN,
+    )
 
     @field_validator("id")
     @classmethod

@@ -63,6 +63,29 @@ def test_parse_all_marks_missing_tools_not_run(tmp_path: Path):
     assert by_tool["evomaster"]["run_status"] == DetectionStatus.NOT_RUN.value
 
 
+def test_parse_all_does_not_auto_pick_latest(tmp_path: Path):
+    base = tmp_path / "raw" / "tool-comparison" / "restler"
+    older = base / "20200101T000000Z"
+    newer = base / "20260101T000000Z"
+    for run in (older, newer):
+        run.mkdir(parents=True)
+        (run / "status.txt").write_text("status=COMPLETED\n", encoding="utf-8")
+        (run / "bug_buckets.json").write_text(
+            '{"note":"500 internal server error"}',
+            encoding="utf-8",
+        )
+    # Without explicit selection, both tools stay NOT_RUN even if dirs exist.
+    rows = parse_all(tmp_path)
+    by_tool = {row["tool"]: row for row in rows}
+    assert by_tool["restler"]["run_status"] == DetectionStatus.NOT_RUN.value
+    assert "run_dir" not in by_tool["restler"]
+
+    selected = parse_all(tmp_path, runs={"restler": newer})
+    by_tool = {row["tool"]: row for row in selected}
+    assert by_tool["restler"]["run_status"] == DetectionStatus.DETECTED.value
+    assert by_tool["restler"]["run_dir"] == str(newer)
+
+
 def test_not_applicable_never_equals_not_detected_semantics():
     # Guarding the scientific rule: N/A is a distinct status string.
     assert DetectionStatus.NOT_APPLICABLE.value != DetectionStatus.NOT_DETECTED.value

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from pathlib import Path
 from typing import Any, Literal
@@ -11,6 +12,7 @@ import yaml
 from pydantic import BaseModel, Field, field_validator
 
 SCHEMA_VERSION = "1.0.0"
+LIVE_EXPERIMENT = "live"
 
 
 def sha256_file(path: Path) -> str:
@@ -68,6 +70,7 @@ class PaperArtifactsManifest(BaseModel):
     replay_match_table: ArtifactRef | None = None
     benchmark_summary: ArtifactRef | None = None
     robustness_metrics: ArtifactRef | None = None
+    reproducibility: ArtifactRef | None = None
     live_runs: LiveRunsRefs = Field(default_factory=LiveRunsRefs)
     tool_comparison: ArtifactRef | None = None
 
@@ -89,6 +92,7 @@ class PaperArtifactsManifest(BaseModel):
             "replay_match_table",
             "benchmark_summary",
             "robustness_metrics",
+            "reproducibility",
             "tool_comparison",
         ):
             ref = getattr(self, key)
@@ -112,6 +116,7 @@ class Claim(BaseModel):
     documents: list[str]
     evidence: ClaimEvidence
     required: bool = False
+    kind: Literal["empirical", "protocol_constant", "example"] = "empirical"
 
 
 class ClaimsRegistry(BaseModel):
@@ -128,6 +133,38 @@ def verify_artifact_ref(path: Path, expected_sha256: str) -> None:
         raise ValueError(
             f"hash mismatch for {path}: expected {expected_sha256}, got {actual}"
         )
+
+
+def validate_live_artifact(path: Path) -> None:
+    """Reject blocked/failed status files and incomplete live selections."""
+    path = Path(path)
+    if path.name.endswith(".status.json"):
+        raise ValueError(
+            f"live status artifact cannot be selected as evidence: {path.name}"
+        )
+    try:
+        document = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"invalid live artifact JSON: {path}: {exc}") from exc
+    if not isinstance(document, dict):
+        raise ValueError(f"live artifact must be a JSON object: {path}")
+    experiment = document.get("experiment")
+    if experiment != LIVE_EXPERIMENT:
+        raise ValueError(
+            f"live artifact experiment must be {LIVE_EXPERIMENT!r}, got {experiment!r}"
+        )
+    payload = document.get("payload")
+    if not isinstance(payload, dict):
+        raise ValueError(f"live artifact missing payload object: {path}")
+    configuration = document.get("configuration")
+    config = configuration if isinstance(configuration, dict) else {}
+    status = payload.get("status") or payload.get("run_status") or config.get("run_status")
+    completed_flag = payload.get("completed")
+    if completed_flag is True or status == "completed":
+        return
+    raise ValueError(
+        f"live artifact is not completed (status={status!r}, completed={completed_flag!r})"
+    )
 
 
 def load_paper_artifacts_manifest(
@@ -153,6 +190,7 @@ def load_paper_artifacts_manifest(
 
     if verify:
         base = Path(root) if root is not None else path.parent.parent
+        live_keys = {"github_readonly", "github_smoke", "notion_readonly"}
         for name, ref in manifest.selected_refs().items():
             target = Path(ref.path)
             if not target.is_absolute():
@@ -161,6 +199,11 @@ def load_paper_artifacts_manifest(
                 verify_artifact_ref(target, ref.sha256)
             except ValueError as exc:
                 raise ValueError(f"{name}: {exc}") from exc
+            if name in live_keys:
+                try:
+                    validate_live_artifact(target)
+                except ValueError as exc:
+                    raise ValueError(f"{name}: {exc}") from exc
     return manifest
 
 

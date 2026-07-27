@@ -169,3 +169,28 @@ def test_calculate_risk_score_default_is_not_caller_mutable_singleton():
     assert calculate_risk_score(1, 0, 0, weights=weights) == 1.0
     assert calculate_risk_score(1, 0, 0) == score_before
     assert DEFAULT_RISK_WEIGHTS.hidden_endpoint == 25.0
+
+
+def test_analyze_run_normalizes_query_parameter_order():
+    target = _demo_target(expected_endpoints=["/api/v1/customers?a=1&b=2"])
+    exchanges = [
+        CapturedExchange(
+            run_id="run-q",
+            phase="baseline",
+            method="GET",
+            path="/api/v1/customers?b=2&a=1",
+            status_code=200,
+            response_body=[{"customer_id": "c1"}],
+        ),
+        CapturedExchange(
+            run_id="run-q",
+            phase="mutated",
+            method="GET",
+            path="/api/v1/customers?b=2&a=1",
+            status_code=200,
+            response_body=[{"customer_id": "c1"}],
+        ),
+    ]
+    report = analyze_run("run-q", target, exchanges)
+    assert report.hidden_endpoints == []
+    assert report.reached_endpoints == ["/api/v1/customers?a=1&b=2"]
