@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import platform
 import subprocess
@@ -10,7 +11,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, ValidationError
+from pydantic import AwareDatetime, BaseModel, ValidationError, field_validator
 
 REDACTED = "[REDACTED]"
 EXACT_SECRET_KEYS = frozenset(
@@ -30,12 +31,19 @@ EXACT_SECRET_KEYS = frozenset(
 
 class Provenance(BaseModel):
     schema_version: Literal["1.0.0"] = "1.0.0"
-    generated_at_utc: datetime
+    generated_at_utc: AwareDatetime
     command: list[str]
     seed: int = 20260727
     git_commit: str | None
     python_version: str
     platform: str
+
+    @field_validator("generated_at_utc")
+    @classmethod
+    def require_utc(cls, value: datetime) -> datetime:
+        if value.tzinfo is None:
+            raise ValueError("generated_at_utc must be timezone-aware")
+        return value.astimezone(UTC)
 
 
 class ArtifactEnvelope(BaseModel):
@@ -52,6 +60,29 @@ def _is_secret_key(key: str) -> bool:
     if lowered in EXACT_SECRET_KEYS:
         return True
     return lowered.endswith("_token") or lowered.endswith("_secret")
+
+
+def _reject_nonfinite(value: Any, path: tuple[Any, ...]) -> None:
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError(f"non-finite float at {'.'.join(str(p) for p in path)}")
+    if isinstance(value, dict):
+        for key, item in value.items():
+            _reject_nonfinite(item, (*path, key))
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            _reject_nonfinite(item, (*path, index))
+
+
+def _assert_secrets_redacted(value: Any, path: tuple[Any, ...]) -> None:
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if _is_secret_key(str(key)) and item != REDACTED:
+                joined = ".".join(str(p) for p in (*path, key))
+                raise ValueError(f"unredacted secret at {joined}")
+            _assert_secrets_redacted(item, (*path, key))
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            _assert_secrets_redacted(item, (*path, index))
 
 
 def redact_secrets(value: Any) -> Any:
@@ -94,16 +125,22 @@ def collect_provenance(command: list[str], seed: int = 20260727) -> Provenance:
 
 
 def _redacted_envelope(envelope: ArtifactEnvelope) -> ArtifactEnvelope:
-    data = envelope.model_dump(mode="json")
+    data = envelope.model_dump(mode="python")
     return ArtifactEnvelope.model_validate(redact_secrets(data))
 
 
 def canonical_json_bytes(envelope: ArtifactEnvelope) -> bytes:
+    _reject_nonfinite(envelope.configuration, ("configuration",))
+    _reject_nonfinite(envelope.payload, ("payload",))
     redacted = _redacted_envelope(envelope)
     payload = redacted.model_dump(mode="json")
-    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
-        "utf-8"
-    )
+    return json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    ).encode("utf-8")
 
 
 def write_artifact(path: Path, envelope: ArtifactEnvelope) -> Path:
@@ -126,9 +163,18 @@ def write_artifact(path: Path, envelope: ArtifactEnvelope) -> Path:
     return path
 
 
+def assert_persisted_artifact_safe(envelope: ArtifactEnvelope) -> None:
+    _reject_nonfinite(envelope.configuration, ("configuration",))
+    _reject_nonfinite(envelope.payload, ("payload",))
+    _assert_secrets_redacted(envelope.configuration, ("configuration",))
+    _assert_secrets_redacted(envelope.payload, ("payload",))
+
+
 def read_artifact(path: Path) -> ArtifactEnvelope:
     path = Path(path)
-    return ArtifactEnvelope.model_validate_json(path.read_bytes())
+    envelope = ArtifactEnvelope.model_validate_json(path.read_bytes())
+    assert_persisted_artifact_safe(envelope)
+    return envelope
 
 
 def validate_artifact_tree(root: Path) -> int:
@@ -151,7 +197,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     try:
         validate_artifact_tree(Path(args[0]))
-    except ValidationError as exc:
+    except (ValidationError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
         return 1
     return 0

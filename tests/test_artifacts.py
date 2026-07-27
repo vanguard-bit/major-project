@@ -141,3 +141,64 @@ def test_collect_provenance_includes_command_and_seed():
     assert provenance.schema_version == "1.0.0"
     assert provenance.python_version
     assert provenance.platform
+    assert provenance.generated_at_utc.tzinfo is not None
+
+
+def test_provenance_rejects_naive_timestamp():
+    with pytest.raises(ValidationError):
+        Provenance(
+            generated_at_utc=datetime(2026, 7, 27, 0, 0, 0),
+            command=["pytest"],
+            seed=20260727,
+            git_commit=None,
+            python_version="3.12.0",
+            platform="test",
+        )
+
+
+def test_write_rejects_nonfinite_floats(tmp_path: Path):
+    path = tmp_path / "bad.json"
+    with pytest.raises(ValueError, match="non-finite"):
+        write_artifact(path, _envelope({"metric": float("nan")}))
+
+
+def test_read_rejects_unredacted_secrets(tmp_path: Path):
+    path = tmp_path / "leaky.json"
+    path.write_text(
+        """{
+  "provenance": {
+    "schema_version": "1.0.0",
+    "generated_at_utc": "2026-07-27T00:00:00Z",
+    "command": ["pytest"],
+    "seed": 20260727,
+    "git_commit": null,
+    "python_version": "3.12.0",
+    "platform": "test"
+  },
+  "experiment": "unit",
+  "configuration": {},
+  "payload": {"token": "still-secret"}
+}
+"""
+    )
+    with pytest.raises(ValueError, match="unredacted secret"):
+        read_artifact(path)
+
+
+def test_cli_validates_and_reports(tmp_path: Path):
+    from ait.artifacts import main
+
+    good = tmp_path / "good.json"
+    write_artifact(good, _envelope({"ok": True}))
+    assert main([str(tmp_path)]) == 0
+
+    bad = tmp_path / "bad.json"
+    bad.write_text("{nope")
+    assert main([str(tmp_path)]) == 1
+
+
+def test_write_artifact_replaces_existing_atomically(tmp_path: Path):
+    path = tmp_path / "artifact.json"
+    write_artifact(path, _envelope({"version": 1}))
+    write_artifact(path, _envelope({"version": 2}))
+    assert read_artifact(path).payload["version"] == 2

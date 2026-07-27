@@ -4,57 +4,59 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Response
 
+from ait.demo_credentials import demo_client_id, demo_client_secret, ensure_demo_credentials
 from ait.models import RunRecord, TargetConfig, TestRunConfig
 from ait.reporting import render_html_report
 from ait.runner import run_assessment
 from ait.store import store
 
-DEMO_TARGET = TargetConfig.model_validate_json(
-    """
-{
-  "name": "demo-integration",
-  "environment": "demo",
-  "base_url": "http://127.0.0.1:8001/",
-  "integration_sync_url": "http://127.0.0.1:8002/sync",
-  "audit_base_url": "http://127.0.0.1:8001/",
-  "auth_type": "oauth_client_credentials",
-  "token_config": {
-    "token_url": "http://127.0.0.1:8001/oauth/token",
-    "client_id": "demo-client",
-    "client_secret": "demo-secret",
-    "scope": "crm.read billing.read"
-  },
-  "openapi_paths": [
-    "/api/v1/customers",
-    "/api/v1/customers/{customer_id}",
-    "/api/v1/customers/{customer_id}/notes"
-  ],
-  "seed_endpoints": [
-    "/api/v1/customers",
-    "/api/v1/customers/{customer_id}",
-    "/api/v1/customers/{customer_id}/notes"
-  ],
-  "expected_endpoints": [
-    "/api/v1/customers",
-    "/api/v1/customers/cust-001",
-    "/api/v1/customers/cust-001/notes"
-  ],
-  "expected_scopes": [
-    "crm.read"
-  ],
-  "sensitive_markers": [
-    "billing_email",
-    "tax_id"
-  ],
-  "description": "Demo target with a hidden billing endpoint for validating detections."
-}
-"""
-)
+
+def build_demo_target() -> TargetConfig:
+    ensure_demo_credentials()
+    return TargetConfig.model_validate(
+        {
+            "name": "demo-integration",
+            "environment": "demo",
+            "base_url": "http://127.0.0.1:8001/",
+            "integration_sync_url": "http://127.0.0.1:8002/sync",
+            "audit_base_url": "http://127.0.0.1:8001/",
+            "auth_type": "oauth_client_credentials",
+            "token_config": {
+                "token_url": "http://127.0.0.1:8001/oauth/token",
+                "client_id": demo_client_id(),
+                "client_secret": demo_client_secret(),
+                "scope": "crm.read billing.read",
+            },
+            "openapi_paths": [
+                "/api/v1/customers",
+                "/api/v1/customers/{customer_id}",
+                "/api/v1/customers/{customer_id}/notes",
+            ],
+            "seed_endpoints": [
+                "/api/v1/customers",
+                "/api/v1/customers/{customer_id}",
+                "/api/v1/customers/{customer_id}/notes",
+            ],
+            "expected_endpoints": [
+                "/api/v1/customers",
+                "/api/v1/customers/cust-001",
+                "/api/v1/customers/cust-001/notes",
+            ],
+            "expected_scopes": ["crm.read"],
+            "sensitive_markers": ["billing_email", "tax_id"],
+            "description": (
+                "Demo target with a hidden billing endpoint for validating detections."
+            ),
+        }
+    )
+
+
+DEMO_TARGET = build_demo_target()
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    store.save_target(DEMO_TARGET)
+    store.save_target(build_demo_target())
     yield
 
 

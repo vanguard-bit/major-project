@@ -4,6 +4,8 @@ from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException
 
+from ait.demo_credentials import demo_access_token, demo_client_id, demo_client_secret
+
 app = FastAPI(title="Mock SaaS")
 
 CUSTOMERS: dict[str, dict[str, Any]] = {
@@ -20,7 +22,10 @@ CUSTOMERS: dict[str, dict[str, Any]] = {
 }
 
 AUDIT_LOGS: dict[str, list[dict[str, Any]]] = {}
-OAUTH_TOKENS = {"demo-client": "demo-static-access-token"}
+
+
+def _oauth_tokens() -> dict[str, str]:
+    return {demo_client_id(): demo_access_token()}
 
 
 def _append_audit(
@@ -56,9 +61,9 @@ def _append_audit(
 async def issue_token(form_data: dict[str, str]):
     client_id = form_data.get("client_id")
     client_secret = form_data.get("client_secret")
-    if client_id != "demo-client" or client_secret != "demo-secret":
+    if client_id != demo_client_id() or client_secret != demo_client_secret():
         raise HTTPException(status_code=401, detail="Invalid client credentials")
-    return {"access_token": OAUTH_TOKENS[client_id], "token_type": "bearer"}
+    return {"access_token": _oauth_tokens()[client_id], "token_type": "bearer"}
 
 
 @app.post("/admin/seed")
@@ -77,7 +82,8 @@ async def get_audit(run_id: str):
 
 
 def _authorize(authorization: str | None) -> None:
-    if authorization != "Bearer demo-static-access-token":
+    expected = f"Bearer {demo_access_token()}"
+    if authorization != expected:
         raise HTTPException(status_code=401, detail="Missing or invalid token")
 
 
