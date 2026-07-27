@@ -1,0 +1,1 @@
+"""Adversarial Integration Tester prototype."""
