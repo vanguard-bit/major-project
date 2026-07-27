@@ -317,15 +317,26 @@ async def test_retry_exhausted_fails(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.anyio
-async def test_retry_after_above_30_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_retry_after_above_30_clamped(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("AIT_TEST_TOKEN", "tok")
     plan = LivePlan.model_validate(_minimal_plan())
+    slept: list[float] = []
+
+    async def capture_sleep(seconds: float) -> None:
+        slept.append(seconds)
+
+    calls = {"n": 0}
 
     def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(429, headers={"retry-after": "31"}, request=request)
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return httpx.Response(429, headers={"retry-after": "31"}, request=request)
+        return httpx.Response(200, json={"ok": True}, request=request)
 
-    with pytest.raises(SafetyRejectionError, match="Retry-After|retry-after|30"):
-        await execute_live_plan(plan, transport=httpx.MockTransport(handler))
+    monkeypatch.setattr("ait.live_runner._sleep", capture_sleep)
+    observations, _ = await execute_live_plan(plan, transport=httpx.MockTransport(handler))
+    assert observations[0].status_code == 200
+    assert slept == [30.0]
 
 
 @pytest.mark.anyio
@@ -462,3 +473,250 @@ def test_cli_safety_rejection_exit_3(tmp_path: Path, monkeypatch: pytest.MonkeyP
 
 async def _noop_sleep(_seconds: float) -> None:
     return None
+
+
+# --- Phase 3 review regressions ---------------------------------------------
+
+
+def test_reject_plan_id_path_traversal() -> None:
+    with pytest.raises((SafetyRejectionError, ValidationError), match=r"id|slug|traversal|\.\."):
+        LivePlan.model_validate(_minimal_plan(id="../evil"))
+
+
+def test_reject_plan_id_with_separator() -> None:
+    with pytest.raises((SafetyRejectionError, ValidationError), match=r"id|slug|separator|/"):
+        LivePlan.model_validate(_minimal_plan(id="a/b"))
+
+
+def test_reject_alternate_port() -> None:
+    plan = LivePlan.model_validate(
+        _minimal_plan(
+            requests=[{"method": "GET", "path": "https://api.github.com:8443/user"}]
+        )
+    )
+    with pytest.raises(SafetyRejectionError, match="port|origin"):
+        validate_request(plan, plan.requests[0], allow_mutation=False)
+
+
+def test_reject_encoded_dot_dot_traversal() -> None:
+    plan = LivePlan.model_validate(
+        _minimal_plan(requests=[{"method": "GET", "path": "/user/%2e%2e/admin"}])
+    )
+    with pytest.raises(SafetyRejectionError, match=r"\.\.|traversal|encoded"):
+        validate_request(plan, plan.requests[0], allow_mutation=False)
+
+
+def test_reject_backslash_in_path() -> None:
+    plan = LivePlan.model_validate(
+        _minimal_plan(requests=[{"method": "GET", "path": "/user\\admin"}])
+    )
+    with pytest.raises(SafetyRejectionError, match=r"backslash|\\\\|traversal"):
+        validate_request(plan, plan.requests[0], allow_mutation=False)
+
+
+def test_reject_relative_path_without_leading_slash() -> None:
+    plan = LivePlan.model_validate(
+        _minimal_plan(requests=[{"method": "GET", "path": "user"}])
+    )
+    with pytest.raises(SafetyRejectionError, match=r"path|relative|slash"):
+        validate_request(plan, plan.requests[0], allow_mutation=False)
+
+
+def test_header_allowlist_rejects_generic_request_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from ait.live_runner import select_headers
+
+    headers = httpx.Headers(
+        {
+            "content-type": "application/json",
+            "x-request-id": "generic-should-drop",
+            "request-id": "also-drop",
+            "x-custom-request-id": "wildcard-drop",
+            "x-github-request-id": "keep-me",
+            "authorization": "Bearer secret",
+        }
+    )
+    selected = select_headers(headers)
+    assert selected == {
+        "content-type": "application/json",
+        "x-github-request-id": "keep-me",
+    }
+
+
+@pytest.mark.anyio
+async def test_secret_values_scrubbed_from_artifacts(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    token = "ghp_LIVE_SECRET_VALUE_XYZ"
+    monkeypatch.setenv("AIT_TEST_TOKEN", token)
+    plan = LivePlan.model_validate(_minimal_plan())
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={"login": "alice", "note": f"echo {token}"},
+            headers={
+                "content-type": "application/json",
+                "x-github-request-id": f"rid-{token}",
+            },
+            request=request,
+        )
+
+    await execute_live_plan(
+        plan,
+        transport=httpx.MockTransport(handler),
+        output_root=tmp_path,
+        command=["ait.live_runner", "run"],
+    )
+    for path in tmp_path.rglob("*.json"):
+        text = path.read_text(encoding="utf-8")
+        assert token not in text
+        assert "ghp_LIVE_SECRET" not in text
+
+
+@pytest.mark.anyio
+async def test_redirect_location_sanitized_and_not_printed_raw(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    token = "tok_IN_LOCATION"
+    monkeypatch.setenv("AIT_TEST_TOKEN", token)
+    plan = LivePlan.model_validate(_minimal_plan())
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            302,
+            headers={"location": f"https://api.github.com/callback?access_token={token}"},
+            request=request,
+        )
+
+    with pytest.raises(SafetyRejectionError) as excinfo:
+        await execute_live_plan(
+            plan,
+            transport=httpx.MockTransport(handler),
+            output_root=tmp_path,
+            command=["ait.live_runner", "run"],
+        )
+    assert token not in str(excinfo.value)
+    # Status/evidence may be written, but must not contain the raw token.
+    for path in tmp_path.rglob("*.json"):
+        assert token not in path.read_text(encoding="utf-8")
+
+
+@pytest.mark.anyio
+async def test_query_retained_in_request_target_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("AIT_TEST_TOKEN", "tok")
+    plan = LivePlan.model_validate(
+        _minimal_plan(
+            expected_endpoints=["/user/repos"],
+            requests=[{"method": "GET", "path": "/user/repos?per_page=1&page=2"}],
+        )
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"ok": True}, request=request)
+
+    observations, _ = await execute_live_plan(plan, transport=httpx.MockTransport(handler))
+    assert observations[0].normalized_path == "/user/repos"
+    target = getattr(observations[0], "request_target", None) or getattr(
+        observations[0], "query", None
+    )
+    assert target is not None
+    assert "per_page=1" in str(target)
+    assert "page=2" in str(target)
+
+
+@pytest.mark.anyio
+async def test_retry_after_http_date_parsed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from datetime import UTC, datetime, timedelta
+
+    monkeypatch.setenv("AIT_TEST_TOKEN", "tok")
+    plan = LivePlan.model_validate(_minimal_plan())
+    slept: list[float] = []
+
+    async def capture_sleep(seconds: float) -> None:
+        slept.append(seconds)
+
+    future = datetime.now(tz=UTC) + timedelta(seconds=5)
+    http_date = future.strftime("%a, %d %b %Y %H:%M:%S GMT")
+    calls = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return httpx.Response(429, headers={"retry-after": http_date}, request=request)
+        return httpx.Response(200, json={"ok": True}, request=request)
+
+    monkeypatch.setattr("ait.live_runner._sleep", capture_sleep)
+    await execute_live_plan(plan, transport=httpx.MockTransport(handler))
+    assert len(slept) == 1
+    assert 0.0 <= slept[0] <= 30.0
+
+
+@pytest.mark.anyio
+async def test_run_id_uses_microseconds_or_uuid(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("AIT_TEST_TOKEN", "tok")
+    plan = LivePlan.model_validate(_minimal_plan())
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"ok": True}, request=request)
+
+    _, report_a = await execute_live_plan(
+        plan, transport=httpx.MockTransport(handler), output_root=tmp_path
+    )
+    _, report_b = await execute_live_plan(
+        plan, transport=httpx.MockTransport(handler), output_root=tmp_path
+    )
+    assert report_a.run_id != report_b.run_id
+    # Second-precision suffix alone would collide; require finer grain or UUID.
+    for run_id in (report_a.run_id, report_b.run_id):
+        assert (
+            "." in run_id.split("-")[-1]
+            or len(run_id) > len(f"{plan.id}-20260101T000000Z")
+            or "-" in run_id[len(plan.id) + 1 :]
+        )
+
+
+@pytest.mark.anyio
+async def test_failed_run_writes_non_completed_status_artifact(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("AIT_TEST_TOKEN", "tok")
+    plan = LivePlan.model_validate(_minimal_plan())
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(401, json={"message": "bad"}, request=request)
+
+    with pytest.raises(RequestFailureError):
+        await execute_live_plan(
+            plan,
+            transport=httpx.MockTransport(handler),
+            output_root=tmp_path,
+            command=["ait.live_runner", "run"],
+        )
+    status_files = list(tmp_path.rglob("*.json"))
+    assert status_files
+    blob = "\n".join(p.read_text(encoding="utf-8") for p in status_files)
+    assert '"status": "completed"' not in blob or '"run_status"' in blob
+    assert any(
+        marker in blob
+        for marker in ('"failed"', '"blocked"', '"incomplete"', '"error"', '"aborted"')
+    )
+
+
+def test_cli_missing_credentials_exit_2_no_writes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("AIT_TEST_TOKEN", raising=False)
+    path = _write_plan(tmp_path, _minimal_plan())
+    out = tmp_path / "out"
+    out.mkdir()
+    code = main(["run", "--plan", str(path), "--output-root", str(out)])
+    assert code == EXIT_MISSING_CREDS
+    assert list(out.rglob("*.json")) == []

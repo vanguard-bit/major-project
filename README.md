@@ -78,6 +78,8 @@ read-only probes against GitHub or Notion. It is not a transparent integration m
   Never pass tokens on the CLI. Missing credentials exit with code `2` and write no artifact.
 - Default artifacts store field **names**, digests, and allowlisted headers — not response bodies
   or `Authorization` / `Set-Cookie` headers.
+- `--store-bodies` is **disabled** (refused at runtime). It is reserved for a future
+  synthetic-only sandbox gate and must not be used with live provider responses.
 
 **Setup**
 

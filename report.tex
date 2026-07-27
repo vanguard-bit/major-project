@@ -205,11 +205,11 @@ do not address.
 AIT is explicitly a proof-of-concept: a three-scenario CRM mock suite yields precision and recall
 of 1.0 on injected violations; a seven-scenario platform-inspired suite reports 100\% precision
 (5 TP, 0 FP) on declared labels; version-controlled YAML and a deterministic in-process runner
-enable reproducible tables. A live SaaS evaluation pipeline validates the same detection logic on
-real provider APIs: a GitHub sandbox probe detects a policy violation (risk score 30, High
-severity) when private repository listing succeeds beyond the declared scope, while a Notion
-read-path probe correctly produces no findings on a compliant integration --- together
-demonstrating positive and negative control behaviour on live REST traffic.
+enable reproducible tables. A live SaaS evaluation pipeline
+(\texttt{ait/live\_runner.py}) is implemented for instrumented sandbox
+probes against real provider APIs, but GitHub and Notion Task~6
+execution remains \textbf{BLOCKED} without credentials and is marked
+\texttt{NOT RUN}---no live risk scores or timings are claimed here.
 
 Replayed public incident sketches align AIT categories with independently reported violations.
 Risk-score perturbation $\pm 30\%$ leaves critical-band classification stable; full production
@@ -323,7 +323,7 @@ false negative cases in Chapter~\ref{ch:fn} (Figure~\ref{fig:fn-overview}).
     \item The AIT framework: a modular, open-source Coordinator API, Mock SaaS service, and Analysis Engine, detecting three violation categories with structured risk scoring.
     \item A dual-phase execution model (baseline / mutated) that surfaces state-dependent evasion (C3) invisible to static analysis and single-phase testing.
     \item An instrumentation-free taint-injection mechanism operating at the data layer, enabling precise run-attributed detection of sensitive field access.
-    \item A live SaaS evaluation pipeline (\texttt{ait/live\_runner.py}) validated on GitHub and Notion sandbox accounts.
+    \item A live SaaS evaluation pipeline (\texttt{ait/live\_runner.py}) for instrumented sandbox probes; GitHub/Notion Task~6 empirical results remain \texttt{NOT RUN}/\textbf{BLOCKED} without credentials.
     \item A log-based replay experiment applying AIT's detection logic to real SaaS incident traces.
     \item A false negative analysis characterising four evasion scenarios that defeat the current detection model.
     \item A risk scoring sensitivity analysis demonstrating stable Critical-band classification across $\pm 30\%$ weight perturbation.
@@ -840,7 +840,7 @@ specifications reflect the configurations used during development and evaluation
 
 \begin{itemize}
     \item The mock assessment suite completes in under 200\,ms on a development laptop, dominated by in-process ASGI transport overhead rather than CPU or memory.
-    \item Live SaaS assessments (GitHub, Notion sandbox runs) completed in approximately 1,600\,ms and 1,512\,ms respectively, dominated by WAN round-trip latency --- not local hardware.
+    \item Live SaaS assessments (GitHub, Notion sandbox runs) are \texttt{NOT RUN} (Task~6 blocked without credentials); measured WAN timings are therefore unavailable.
     \item The Analysis Engine micro-benchmark (Table~\ref{tab:benchmark}) showed $<$1\,ms latency for 100-path audit logs, confirming that compute is not the bottleneck.
     \item A production deployment with persistent storage (PostgreSQL or Redis backend) will require higher RAM and I/O throughput than the minimum specification.
 \end{itemize}
@@ -1210,26 +1210,24 @@ compliant baselines (TP=5, FP=0, Precision=1.0).
     \textbf{\#} & \textbf{Platform} & \textbf{Scenario} & \textbf{Violation Type} & \textbf{Risk} & \textbf{Sev.} & \textbf{Det.?} \\
     \midrule
     \endhead
-    1 & GitHub & Live scope boundary  & Policy violation & 30 & High & Yes   \\[4pt]
-    2 & Notion & Read-path validation & None             &  0 & ---  & No FP \\
+    1 & GitHub & Live scope boundary  & --- & NOT RUN & --- & BLOCKED \\[4pt]
+    2 & Notion & Read-path validation & --- & NOT RUN & --- & BLOCKED \\
     \bottomrule
-    \caption{Live SaaS Evaluation Results (Sandbox Accounts)}
+    \caption{Live SaaS Evaluation Results (Sandbox Accounts; Task~6 blocked without credentials)}
     \label{tab:live-results}
 \end{longtable}
 
-AIT detects a real access-control enforcement gap on a live GitHub token and correctly produces
-no findings for a correctly-scoped Notion integration. The GitHub sandbox result indicates the
-supplied token's actual capabilities exceeded the declared policy --- a policy mismatch in the
-evaluation setup, not a vulnerability in the GitHub platform.
+Live sandbox Task~6 remains \textbf{BLOCKED} without credentials; rows above are
+\texttt{NOT RUN}. The live runner design targets positive and negative control plans
+on GitHub and Notion; empirical claims await redacted artifacts from real sandbox runs.
 
 \section{Live GitHub REST Smoke Probe}
 
-A separate read-only probe exercises \texttt{api.github.com} under a stricter policy
-allowlisting only \texttt{/user}. The instrumented client additionally issues
-\texttt{GET /user/repos} (first page and a paginated \texttt{page=2} request) and
-\texttt{GET /user/orgs}. AIT reports both paths as hidden endpoints relative to the allowlist,
-yielding a higher risk score than a single extra call. This probe demonstrates detection of
-multiple undeclared surfaces in a single live trace.
+A separate read-only probe plan exercises \texttt{api.github.com} under a stricter policy
+allowlisting only \texttt{/user}, with additional undeclared \texttt{/user/repos} and
+\texttt{/user/orgs} requests. Empirical smoke-probe results are \texttt{NOT RUN}
+(Task~6 blocked). When executed, the signal of interest is policy mismatch relative to
+the allowlist, not server-side exploitability.
 
 \section{Robustness and Noise}
 
@@ -1400,13 +1398,14 @@ black-box, session-bounded, field-name-based detection model.
 \section{Current Limitations}
 
 \textbf{L1: External Validity.}
-Primary evidence comprises mock scenarios, two live sandbox accounts (GitHub and Notion), a
-read-only GitHub smoke probe, and replayed public incidents. The framework has not been
+Primary evidence comprises mock scenarios, replayed public incidents, and a live probe design
+for two sandbox accounts (GitHub and Notion) whose Task~6 empirical rows are
+\texttt{NOT RUN}/\textbf{BLOCKED} without credentials. The framework has not been
 evaluated tenant-wide on live production SaaS platforms; this remains the primary limitation.
 
 \textbf{L2: Evaluation Scale.}
 The CRM isolation suite uses three scenarios; the platform-inspired suite adds seven YAML-defined
-policies; the live suite covers two sandbox accounts. A larger, more adversarial test suite is
+policies; live sandbox plans exist but empirical runs are blocked. A larger, more adversarial test suite is
 needed.
 
 \textbf{L3: Scoring Model.}
@@ -1465,10 +1464,9 @@ scope tools: black-box reconciliation of observed integration traffic against an
 artifact. The design combines an integration-centric test subject, dual-phase stimulation for C3,
 and instrumentation-free taint markers for C2.
 
-A live SaaS evaluation pipeline extends validation beyond mocks: sandbox runs on GitHub
-and Notion confirm that the same detection logic surfaces real policy divergence on live vendor
-REST APIs, with the GitHub sandbox producing a policy violation finding (risk 30, High) and
-the Notion sandbox correctly returning no findings on a compliant integration.
+A live SaaS evaluation pipeline (\texttt{ait/live\_runner.py}) is implemented for
+instrumented sandbox probes, but GitHub and Notion Task~6 results remain
+\texttt{NOT RUN}/\textbf{BLOCKED} without credentials---no live risk scores are claimed.
 
 The Hardware and Software Requirements chapter (Chapter~\ref{ch:hwsw}) establishes that AIT
 can be deployed on commodity hardware using an entirely open-source Python stack, with clear
