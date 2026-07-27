@@ -16,7 +16,7 @@ import typer
 import yaml
 from pydantic import BaseModel, Field, HttpUrl, field_validator
 
-from ait.analysis import analyze_run
+from ait.analysis import analyze_run, extract_field_paths
 from ait.artifacts import ArtifactEnvelope, collect_provenance, redact_secrets, write_artifact
 from ait.models import CapturedExchange, RunReport, TargetConfig
 
@@ -100,20 +100,6 @@ class LiveObservation(BaseModel):
     response_fields: list[str]
     selected_headers: dict[str, str]
     elapsed_ms: float
-
-
-def extract_field_paths(value: Any, prefix: str = "") -> set[str]:
-    """Local copy pending Phase 2 `ait.analysis.extract_field_paths` reconciliation."""
-    paths: set[str] = set()
-    if isinstance(value, dict):
-        for key, item in value.items():
-            path = f"{prefix}.{key}" if prefix else str(key)
-            paths.add(path)
-            paths |= extract_field_paths(item, path)
-    elif isinstance(value, list):
-        for item in value:
-            paths |= extract_field_paths(item, prefix)
-    return paths
 
 
 def normalize_endpoint_path(path: str) -> str:
