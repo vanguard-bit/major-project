@@ -61,10 +61,58 @@ def test_run_benchmark_independent_percentile_recompute(tmp_path: Path):
     assert abs(result[0].p95_ms - expected_p95) < 1e-9
     host = raw["payload"]["host"]
     assert "cpu" in host
+    assert "processor_model" in host
+    assert host["processor_model"]  # model string or "unknown"
+    assert "logical_cpu_count" in host
+    assert host["logical_cpu_count"] is None or host["logical_cpu_count"] >= 1
+    assert "cpu_affinity" in host
+    assert host["cpu_affinity"] == "unknown" or isinstance(host["cpu_affinity"], list)
     assert "os" in host
     assert "python_version" in host
     assert "architecture" in host
     assert "cpu_affinity_set" in host
+
+
+def test_run_benchmark_asserts_identical_risk_scores(monkeypatch):
+    from ait.experiments import benchmark_analysis as ba
+    from ait.models import RunReport
+
+    calls = {"n": 0}
+
+    def flaky_analyze(run_id, target, exchanges, weights=None):
+        calls["n"] += 1
+        score = 25.0 if calls["n"] == 1 else 30.0
+        return RunReport(
+            run_id=run_id,
+            target_name=target.name,
+            status="completed",
+            reached_endpoints=[],
+            hidden_endpoints=["/x"],
+            sensitive_fields_accessed=[],
+            divergence_summary=[],
+            risk_score=score,
+            findings=[],
+        )
+
+    monkeypatch.setattr(ba, "analyze_run", flaky_analyze)
+    config = ba.BenchmarkConfig(widths=[10], warmups=0, repetitions=2, seed=1)
+    try:
+        ba.run_benchmark(config)
+        raised = False
+    except ValueError as exc:
+        raised = True
+        assert "risk score" in str(exc).lower()
+    assert raised
+
+
+def test_benchmark_config_rejects_empty_widths():
+    import pytest
+    from pydantic import ValidationError
+
+    from ait.experiments.benchmark_analysis import BenchmarkConfig
+
+    with pytest.raises(ValidationError):
+        BenchmarkConfig(widths=[], warmups=1, repetitions=1)
 
 
 def test_benchmark_cli(tmp_path: Path):

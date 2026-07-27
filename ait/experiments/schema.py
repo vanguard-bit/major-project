@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator, model_validator
@@ -7,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator, mod
 from ait.models import (
     AuthType,
     CapturedExchange,
+    Finding,
     FindingCategory,
     RunReport,
     TargetConfig,
@@ -71,6 +73,30 @@ class ExpectedLabel(BaseModel):
 
     category: FindingCategory
     endpoint: str | None = None
+
+
+def labels_exact_match(
+    expected_labels: Sequence[ExpectedLabel],
+    findings: Sequence[Finding],
+) -> bool:
+    """Match expected labels to findings with optional endpoint qualification.
+
+    When a label supplies an endpoint, a finding with the same category and
+    endpoint must exist. Labels without an endpoint match by category only.
+    Overall category sets must still be equal (no missing or extra categories).
+    """
+    for label in expected_labels:
+        if label.endpoint is not None:
+            if not any(
+                finding.category == label.category and finding.endpoint == label.endpoint
+                for finding in findings
+            ):
+                return False
+        elif not any(finding.category == label.category for finding in findings):
+            return False
+    expected_categories = {label.category for label in expected_labels}
+    observed_categories = {finding.category for finding in findings}
+    return expected_categories == observed_categories
 
 
 class ScenarioDefinition(BaseModel):

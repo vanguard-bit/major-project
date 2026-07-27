@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import typer
+from pydantic import ValidationError
 
 from ait.artifacts import ArtifactEnvelope, collect_provenance, write_artifact
 from ait.experiments.benchmark_analysis import BenchmarkConfig, run_benchmark_pipeline
@@ -16,11 +17,12 @@ from ait.experiments.replay_incidents import run_replay_pipeline
 from ait.experiments.risk_sensitivity import run_sensitivity_pipeline
 from ait.experiments.run_scenarios import _outcome_payload, _print_outcome
 from ait.experiments.scenario_loader import load_scenarios
-from ait.experiments.schema import ScenarioOutcome
+from ait.experiments.schema import ScenarioOutcome, labels_exact_match
 
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
 SEED = 20260727
+MANIFEST_NAME = "offline_manifest.json"
 
 
 def _sha256_file(path: Path) -> str:
@@ -31,19 +33,41 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _collect_artifact_paths(output_root: Path) -> list[Path]:
-    root = Path(output_root)
-    paths = sorted(p for p in root.rglob("*.json") if p.is_file())
-    # Exclude the manifest itself if regenerating
-    return [p for p in paths if p.name != "offline_manifest.json"]
+def _manifest_path(output_root: Path) -> Path:
+    return Path(output_root) / "derived" / MANIFEST_NAME
+
+
+def _invalidate_success_manifest(output_root: Path) -> None:
+    path = _manifest_path(output_root)
+    if path.exists():
+        path.unlink()
+
+
+def _publish_manifest(output_root: Path, envelope: ArtifactEnvelope) -> Path:
+    """Stage then atomically publish the offline success manifest."""
+    final_path = _manifest_path(output_root)
+    final_path.parent.mkdir(parents=True, exist_ok=True)
+    # write_artifact already stages via mkstemp + os.replace
+    return write_artifact(final_path, envelope)
+
+
+def _scenario_failed(outcome: ScenarioOutcome) -> bool:
+    if outcome.expected_labels:
+        return not labels_exact_match(outcome.expected_labels, outcome.report.findings)
+    return outcome.expected_categories != outcome.observed_categories
 
 
 async def _run_scenarios(
     scenario_root: Path,
     output_root: Path,
     command: list[str],
+    produced: list[Path],
 ) -> tuple[int, list[ScenarioOutcome]]:
     scenarios = load_scenarios(scenario_root, suite="all")
+    if not scenarios:
+        typer.echo(f"No scenarios found under {scenario_root}", err=True)
+        return 1, []
+
     outcomes: list[ScenarioOutcome] = []
     failures = 0
     raw_dir = output_root / "raw" / "scenarios"
@@ -51,7 +75,7 @@ async def _run_scenarios(
         outcome = await execute_scenario(scenario)
         outcomes.append(outcome)
         _print_outcome(outcome)
-        if outcome.expected_categories != outcome.observed_categories:
+        if _scenario_failed(outcome):
             failures += 1
         envelope = ArtifactEnvelope(
             provenance=collect_provenance(command, seed=SEED),
@@ -64,7 +88,7 @@ async def _run_scenarios(
             },
             payload=_outcome_payload(outcome),
         )
-        write_artifact(raw_dir / f"{scenario.id}.json", envelope)
+        produced.append(write_artifact(raw_dir / f"{scenario.id}.json", envelope))
 
     category_metrics = evaluate_categories(outcomes)
     micro = micro_average(category_metrics)
@@ -78,7 +102,7 @@ async def _run_scenarios(
             "scenario_results": [
                 {
                     "scenario_id": o.scenario_id,
-                    "passed": o.expected_categories == o.observed_categories,
+                    "passed": not _scenario_failed(o),
                     "expected_categories": sorted(c.value for c in o.expected_categories),
                     "observed_categories": sorted(c.value for c in o.observed_categories),
                 }
@@ -86,11 +110,12 @@ async def _run_scenarios(
             ],
         },
     )
-    write_artifact(output_root / "derived" / "scenario_metrics.json", derived)
+    produced.append(write_artifact(output_root / "derived" / "scenario_metrics.json", derived))
     typer.echo(
         f"Scenarios: {len(outcomes)} PASS={len(outcomes) - failures} FAIL={failures}"
     )
     return failures, outcomes
+
 
 def run_offline(
     output_root: Path,
@@ -103,37 +128,60 @@ def run_offline(
     benchmark_repetitions: int = 100,
 ) -> int:
     output_root = Path(output_root)
+    produced: list[Path] = []
+    # Invalidate any prior success claim before this run can complete.
+    _invalidate_success_manifest(output_root)
+
     typer.echo("=== 1/4 scenarios ===")
-    failures, outcomes = asyncio.run(_run_scenarios(scenario_root, output_root, command))
+    failures, outcomes = asyncio.run(
+        _run_scenarios(scenario_root, output_root, command, produced)
+    )
     if failures:
         typer.echo("Stopping: scenario suite failed.", err=True)
+        _invalidate_success_manifest(output_root)
         return 1
 
     typer.echo("=== 2/4 risk sensitivity ===")
-    rows = run_sensitivity_pipeline(outcomes, output_root, command)
+    rows = run_sensitivity_pipeline(
+        outcomes, output_root, command, produced=produced
+    )
     typer.echo(f"Sensitivity rows: {len(rows)}")
 
     typer.echo("=== 3/4 incident replay ===")
-    replay_outcomes = run_replay_pipeline(incident_root, output_root, command)
+    try:
+        replay_outcomes = run_replay_pipeline(
+            incident_root, output_root, command, produced=produced
+        )
+    except ValueError as exc:
+        typer.echo(f"Stopping: {exc}", err=True)
+        _invalidate_success_manifest(output_root)
+        return 1
     replay_failures = sum(1 for o in replay_outcomes if not o.exact_match)
     if replay_failures:
         typer.echo("Stopping: incident replay failed.", err=True)
+        _invalidate_success_manifest(output_root)
         return 1
 
     typer.echo("=== 4/4 benchmark ===")
     widths = benchmark_widths if benchmark_widths is not None else [10, 50, 100, 500, 1000]
-    config = BenchmarkConfig(
-        widths=widths,
-        warmups=benchmark_warmups,
-        repetitions=benchmark_repetitions,
-        seed=SEED,
-    )
-    summaries = run_benchmark_pipeline(config, output_root, command)
+    try:
+        config = BenchmarkConfig(
+            widths=widths,
+            warmups=benchmark_warmups,
+            repetitions=benchmark_repetitions,
+            seed=SEED,
+        )
+        summaries = run_benchmark_pipeline(
+            config, output_root, command, produced=produced
+        )
+    except (ValueError, ValidationError) as exc:
+        typer.echo(f"Stopping: benchmark failed ({exc})", err=True)
+        _invalidate_success_manifest(output_root)
+        return 1
     typer.echo(f"Benchmark widths: {len(summaries)}")
 
-    artifacts = _collect_artifact_paths(output_root)
     entries: list[dict[str, Any]] = []
-    for path in artifacts:
+    for path in produced:
         entries.append(
             {
                 "path": str(path.relative_to(output_root)),
@@ -150,7 +198,7 @@ def run_offline(
         },
         payload={"artifacts": entries, "artifact_count": len(entries)},
     )
-    write_artifact(output_root / "derived" / "offline_manifest.json", manifest)
+    _publish_manifest(output_root, manifest)
     typer.echo(f"Offline manifest: {len(entries)} artifacts")
     return 0
 

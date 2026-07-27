@@ -105,9 +105,32 @@ def derive_sensitivity_summary(rows: Sequence[SensitivityRow]) -> dict[str, Any]
     for scenario_id, scenario_rows in by_scenario.items():
         scores = [r.score for r in scenario_rows]
         bands = {r.band for r in scenario_rows}
-        at_one = {r.band for r in scenario_rows if r.multiplier == 1.0}
-        other = {r.band for r in scenario_rows if r.multiplier != 1.0}
-        band_transitions = sorted((other - at_one) | (at_one - other))
+        keyed = {(r.varied_weight, r.multiplier): r for r in scenario_rows}
+        band_transitions: list[dict[str, Any]] = []
+        for varied in WEIGHT_NAMES:
+            baseline = keyed.get((varied, 1.0))
+            if baseline is None:
+                continue
+            for row in scenario_rows:
+                if row.varied_weight != varied or row.multiplier == 1.0:
+                    continue
+                if row.band != baseline.band:
+                    band_transitions.append(
+                        {
+                            "baseline_band": baseline.band,
+                            "resulting_band": row.band,
+                            "varied_weight": varied,
+                            "multiplier": row.multiplier,
+                        }
+                    )
+        band_transitions.sort(
+            key=lambda item: (
+                item["varied_weight"],
+                item["multiplier"],
+                item["baseline_band"],
+                item["resulting_band"],
+            )
+        )
         scenarios.append(
             {
                 "scenario_id": scenario_id,
@@ -125,6 +148,8 @@ def run_sensitivity_pipeline(
     output_root: Path,
     command: list[str],
     multipliers: list[float] | None = None,
+    *,
+    produced: list[Path] | None = None,
 ) -> list[SensitivityRow]:
     mults = list(multipliers) if multipliers is not None else list(DEFAULT_MULTIPLIERS)
     rows = run_sensitivity(outcomes, multipliers=mults)
@@ -139,7 +164,9 @@ def run_sensitivity_pipeline(
         },
         payload={"rows": [r.model_dump(mode="json") for r in rows]},
     )
-    write_artifact(raw_dir / "sensitivity_rows.json", envelope)
+    written = write_artifact(raw_dir / "sensitivity_rows.json", envelope)
+    if produced is not None:
+        produced.append(written)
 
     summary = derive_sensitivity_summary(rows)
     derived = ArtifactEnvelope(
@@ -148,7 +175,9 @@ def run_sensitivity_pipeline(
         configuration={"multipliers": mults, "scenario_count": len(outcomes)},
         payload=summary,
     )
-    write_artifact(output_root / "derived" / "sensitivity_summary.json", derived)
+    written = write_artifact(output_root / "derived" / "sensitivity_summary.json", derived)
+    if produced is not None:
+        produced.append(written)
     return rows
 
 
@@ -170,9 +199,15 @@ def main(
 
     async def _run() -> list[ScenarioOutcome]:
         scenarios = load_scenarios(scenario_root, suite=suite)
+        if not scenarios:
+            raise ValueError(f"no scenarios found under {scenario_root}")
         return [await execute_scenario(scenario) for scenario in scenarios]
 
-    outcomes = asyncio.run(_run())
+    try:
+        outcomes = asyncio.run(_run())
+    except ValueError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
     rows = run_sensitivity_pipeline(outcomes, output_root, command)
     typer.echo(f"Sensitivity rows: {len(rows)}")
 

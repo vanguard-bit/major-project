@@ -11,9 +11,15 @@ from ait.artifacts import ArtifactEnvelope, collect_provenance, write_artifact
 from ait.experiments.metrics import evaluate_categories, micro_average
 from ait.experiments.mock_executor import execute_scenario
 from ait.experiments.scenario_loader import load_scenarios
-from ait.experiments.schema import ScenarioOutcome
+from ait.experiments.schema import ScenarioOutcome, labels_exact_match
 
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
+
+
+def _outcome_passed(outcome: ScenarioOutcome) -> bool:
+    if outcome.expected_labels:
+        return labels_exact_match(outcome.expected_labels, outcome.report.findings)
+    return outcome.expected_categories == outcome.observed_categories
 
 
 def _outcome_payload(outcome: ScenarioOutcome) -> dict[str, Any]:
@@ -26,7 +32,7 @@ def _outcome_payload(outcome: ScenarioOutcome) -> dict[str, Any]:
         "exchanges": [exchange.model_dump(mode="json") for exchange in outcome.exchanges],
         "expected_categories": sorted(c.value for c in outcome.expected_categories),
         "observed_categories": sorted(c.value for c in outcome.observed_categories),
-        "passed": outcome.expected_categories == outcome.observed_categories,
+        "passed": _outcome_passed(outcome),
         "report": outcome.report.model_dump(mode="json"),
     }
 
@@ -34,7 +40,7 @@ def _outcome_payload(outcome: ScenarioOutcome) -> dict[str, Any]:
 def _print_outcome(outcome: ScenarioOutcome) -> None:
     expected = sorted(c.value for c in outcome.expected_categories)
     observed = sorted(c.value for c in outcome.observed_categories)
-    status = "PASS" if outcome.expected_categories == outcome.observed_categories else "FAIL"
+    status = "PASS" if _outcome_passed(outcome) else "FAIL"
     typer.echo(
         f"{status} {outcome.scenario_id} expected={expected} observed={observed}"
     )
@@ -59,7 +65,7 @@ async def _run(
         outcome = await execute_scenario(scenario)
         outcomes.append(outcome)
         _print_outcome(outcome)
-        if outcome.expected_categories != outcome.observed_categories:
+        if not _outcome_passed(outcome):
             failures += 1
         envelope = ArtifactEnvelope(
             provenance=collect_provenance(command),
@@ -86,7 +92,7 @@ async def _run(
             "scenario_results": [
                 {
                     "scenario_id": o.scenario_id,
-                    "passed": o.expected_categories == o.observed_categories,
+                    "passed": _outcome_passed(o),
                     "expected_categories": sorted(c.value for c in o.expected_categories),
                     "observed_categories": sorted(c.value for c in o.observed_categories),
                 }

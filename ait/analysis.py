@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import math
 from collections import defaultdict
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ait.models import (
     CapturedExchange,
@@ -16,10 +17,21 @@ from ait.models import (
 
 
 class RiskWeights(BaseModel):
-    hidden_endpoint: float = 25.0
-    sensitive_field: float = 20.0
-    divergence: float = 15.0
-    cap: float = 100.0
+    """Immutable risk-score weights. Cap must be strictly positive and finite."""
+
+    model_config = ConfigDict(frozen=True)
+
+    hidden_endpoint: float = Field(default=25.0, ge=0.0)
+    sensitive_field: float = Field(default=20.0, ge=0.0)
+    divergence: float = Field(default=15.0, ge=0.0)
+    cap: float = Field(default=100.0, gt=0.0)
+
+    @field_validator("hidden_endpoint", "sensitive_field", "divergence", "cap")
+    @classmethod
+    def require_finite(cls, value: float) -> float:
+        if not math.isfinite(value):
+            raise ValueError("weights must be finite")
+        return value
 
 
 DEFAULT_RISK_WEIGHTS = RiskWeights()
@@ -29,16 +41,17 @@ def calculate_risk_score(
     hidden_endpoint_count: int,
     sensitive_field_count: int,
     divergence_count: int,
-    weights: RiskWeights = DEFAULT_RISK_WEIGHTS,
+    weights: RiskWeights | None = None,
 ) -> float:
     if hidden_endpoint_count < 0 or sensitive_field_count < 0 or divergence_count < 0:
         raise ValueError("negative counts are not allowed")
+    effective = weights if weights is not None else DEFAULT_RISK_WEIGHTS
     raw = (
-        hidden_endpoint_count * weights.hidden_endpoint
-        + sensitive_field_count * weights.sensitive_field
-        + divergence_count * weights.divergence
+        hidden_endpoint_count * effective.hidden_endpoint
+        + sensitive_field_count * effective.sensitive_field
+        + divergence_count * effective.divergence
     )
-    return min(weights.cap, raw)
+    return min(effective.cap, raw)
 
 
 def extract_field_paths(value: Any, prefix: str = "") -> set[str]:

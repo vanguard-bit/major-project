@@ -129,7 +129,20 @@ def test_derive_sensitivity_summary_min_max_and_transitions():
     assert scenario["scenario_id"] == "fixture-s1"
     assert scenario["min_score"] == 37.5
     assert scenario["max_score"] == 52.5
-    assert "high" in scenario["band_transitions"]
+    transitions = scenario["band_transitions"]
+    assert isinstance(transitions, list)
+    assert transitions
+    assert all(isinstance(t, dict) for t in transitions)
+    high = [
+        t
+        for t in transitions
+        if t["resulting_band"] == "high" and t["baseline_band"] == "medium"
+    ]
+    assert high
+    assert {t["varied_weight"] for t in high} <= {"hidden_endpoint", "sensitive_field"}
+    for t in high:
+        assert t["multiplier"] == 1.3
+        assert set(t) >= {"baseline_band", "resulting_band", "varied_weight", "multiplier"}
 
 
 def test_run_sensitivity_pipeline_writes_artifacts(tmp_path: Path):

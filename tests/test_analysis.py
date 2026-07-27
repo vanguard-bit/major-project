@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError
 
 from ait.analysis import (
     DEFAULT_RISK_WEIGHTS,
@@ -120,3 +121,51 @@ def test_default_risk_weights_match_legacy_constants():
     assert DEFAULT_RISK_WEIGHTS.sensitive_field == 20.0
     assert DEFAULT_RISK_WEIGHTS.divergence == 15.0
     assert DEFAULT_RISK_WEIGHTS.cap == 100.0
+
+
+def test_risk_weights_are_frozen():
+    with pytest.raises((ValidationError, TypeError, AttributeError)):
+        DEFAULT_RISK_WEIGHTS.hidden_endpoint = 1.0  # type: ignore[misc]
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("hidden_endpoint", float("nan")),
+        ("hidden_endpoint", float("inf")),
+        ("hidden_endpoint", -1.0),
+        ("sensitive_field", float("nan")),
+        ("sensitive_field", float("-inf")),
+        ("sensitive_field", -0.1),
+        ("divergence", float("inf")),
+        ("divergence", -5.0),
+        ("cap", float("nan")),
+        ("cap", float("inf")),
+        ("cap", 0.0),
+        ("cap", -1.0),
+    ],
+)
+def test_risk_weights_reject_non_finite_or_invalid(field: str, value: float):
+    kwargs = {
+        "hidden_endpoint": 25.0,
+        "sensitive_field": 20.0,
+        "divergence": 15.0,
+        "cap": 100.0,
+    }
+    kwargs[field] = value
+    with pytest.raises((ValidationError, ValueError, TypeError)):
+        RiskWeights(**kwargs)
+
+
+def test_calculate_risk_score_default_is_not_caller_mutable_singleton():
+    """Callers must not be able to permanently mutate shared defaults."""
+    score_before = calculate_risk_score(1, 0, 0)
+    weights = RiskWeights(
+        hidden_endpoint=1.0,
+        sensitive_field=20.0,
+        divergence=15.0,
+        cap=100.0,
+    )
+    assert calculate_risk_score(1, 0, 0, weights=weights) == 1.0
+    assert calculate_risk_score(1, 0, 0) == score_before
+    assert DEFAULT_RISK_WEIGHTS.hidden_endpoint == 25.0
