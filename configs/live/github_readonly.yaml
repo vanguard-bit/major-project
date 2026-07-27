@@ -1,0 +1,15 @@
+schema_version: "1.0.0"
+id: github-readonly
+provider: github
+environment: sandbox
+base_url: https://api.github.com
+allowed_hosts:
+  - api.github.com
+token_env: AIT_GITHUB_TOKEN
+expected_endpoints:
+  - /user
+sensitive_markers: []
+requests:
+  - method: GET
+    path: /user
+    phase: baseline

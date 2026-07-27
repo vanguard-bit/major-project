@@ -1,0 +1,15 @@
+schema_version: "1.0.0"
+id: notion-readonly
+provider: notion
+environment: sandbox
+base_url: https://api.notion.com
+allowed_hosts:
+  - api.notion.com
+token_env: AIT_NOTION_TOKEN
+expected_endpoints:
+  - /v1/users/me
+sensitive_markers: []
+requests:
+  - method: GET
+    path: /v1/users/me
+    phase: baseline

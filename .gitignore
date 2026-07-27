@@ -10,7 +10,10 @@ htmlcov/
 .env.*
 *.pem
 *.key
+*.token
+*token*.txt
 tokens/
+.secrets/
 .worktrees/
 worktrees/
 results/raw/live-private/

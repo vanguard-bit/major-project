@@ -63,3 +63,47 @@ unredacted live payloads must never be committed. Validate existing JSON artifac
 ```bash
 make validate-artifacts
 ```
+
+## Live SaaS probes (sandbox only)
+
+The live runner (`python -m ait.live_runner`) issues **instrumented, allowlisted**
+read-only probes against GitHub or Notion. It is not a transparent integration monitor.
+
+**Safety defaults**
+
+- Methods are `GET`/`HEAD` only unless both `--allow-mutation` and `environment: sandbox`.
+- Redirects are rejected (not followed). Hosts must exactly match the plan allowlist.
+- At most 20 requests/run, 1 MiB response, 10s timeout; retries only for 429/502/503/504.
+- Tokens come **only** from environment variables (`AIT_GITHUB_TOKEN`, `AIT_NOTION_TOKEN`).
+  Never pass tokens on the CLI. Missing credentials exit with code `2` and write no artifact.
+- Default artifacts store field **names**, digests, and allowlisted headers — not response bodies
+  or `Authorization` / `Set-Cookie` headers.
+
+**Setup**
+
+1. Create least-privilege sandbox credentials (dedicated account/app; no production tokens).
+2. Export the token in your shell (or a gitignored `.env` loaded by your shell only):
+
+```bash
+export AIT_GITHUB_TOKEN=...   # never commit
+export AIT_NOTION_TOKEN=...   # never commit
+```
+
+3. Dry-run first (no credentials required; prints resolved URLs only):
+
+```bash
+uv run python -m ait.live_runner run --plan configs/live/github_smoke.yaml --dry-run
+uv run python -m ait.live_runner run --plan configs/live/notion_readonly.yaml --dry-run
+```
+
+4. Run a read-only plan only after reviewing every URL:
+
+```bash
+uv run python -m ait.live_runner run \
+  --plan configs/live/github_readonly.yaml \
+  --output-root results
+```
+
+Inspect `results/raw/live/` for accidental PII or tokens before any paper bundle.
+Private live dumps belong under `results/raw/live-private/` (gitignored).
+Do not invent or substitute mock results when credentials are unavailable.
