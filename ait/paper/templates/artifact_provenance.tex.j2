@@ -1,0 +1,10 @@
+\begin{tabular}{lll}
+  \toprule
+  \textbf{Artifact} & \textbf{Path} & \textbf{SHA-256 (prefix)} \\
+  \midrule
+{% for row in rows %}
+  \texttt{ {{ row.name }} } & \texttt{ {{ row.path }} } &
+  {% if row.sha256 == "NOT RUN" %}NOT RUN{% else %}\texttt{ {{ row.sha256[:12] }}\ldots}{% endif %} \\
+{% endfor %}
+  \bottomrule
+\end{tabular}

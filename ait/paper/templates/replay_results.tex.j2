@@ -1,0 +1,13 @@
+\begin{tabular}{llll}
+  \toprule
+  \textbf{Incident} & \textbf{Expected categories} & \textbf{Observed categories} & \textbf{Exact match} \\
+  \midrule
+{% if available %}
+{% for row in rows %}
+  \texttt{ {{ row.incident }} } & {{ row.expected }} & {{ row.observed }} & {{ row.match }} \\
+{% endfor %}
+{% else %}
+  --- & NOT RUN & NOT RUN & NOT RUN \\
+{% endif %}
+  \bottomrule
+\end{tabular}

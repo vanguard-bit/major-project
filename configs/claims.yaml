@@ -1,0 +1,79 @@
+schema_version: "1.0.0"
+claims:
+  - id: mock-overall-f1
+    text_pattern: "mock_detection_results|Overall \\(micro\\)|micro-average"
+    documents: [main.tex, report.tex]
+    evidence:
+      artifact: scenario_metrics
+      json_pointer: /payload/micro/f1
+    required: true
+  - id: mock-category-metrics
+    text_pattern: "mock_detection_results"
+    documents: [main.tex, report.tex]
+    evidence:
+      artifact: scenario_metrics
+      json_pointer: /payload/categories
+    required: true
+  - id: platform-scenario-risks
+    text_pattern: "platform_scenario_results"
+    documents: [main.tex, report.tex]
+    evidence:
+      artifact: scenario_metrics
+      json_pointer: /payload/scenario_results
+    required: true
+  - id: replay-exact-match
+    text_pattern: "replay_results"
+    documents: [main.tex, report.tex]
+    evidence:
+      artifact: replay_match_table
+      json_pointer: /payload/matches
+    required: true
+  - id: risk-sensitivity-bands
+    text_pattern: "risk_sensitivity"
+    documents: [main.tex, report.tex]
+    evidence:
+      artifact: sensitivity_summary
+      json_pointer: /payload/scenarios
+    required: true
+  - id: benchmark-timings
+    text_pattern: "benchmark_results"
+    documents: [main.tex, report.tex]
+    evidence:
+      artifact: benchmark_summary
+      json_pointer: /payload/summaries
+    required: true
+  - id: artifact-provenance
+    text_pattern: "artifact_provenance"
+    documents: [main.tex, report.tex]
+    evidence:
+      artifact: offline_manifest
+      json_pointer: /payload/artifacts
+    required: true
+  - id: live-saas-results
+    text_pattern: "live_results"
+    documents: [main.tex, report.tex]
+    evidence:
+      artifact: github_readonly
+      json_pointer: /payload
+    required: false
+  - id: live-github-smoke
+    text_pattern: "smoke.?probe|github_smoke"
+    documents: [main.tex, report.tex]
+    evidence:
+      artifact: github_smoke
+      json_pointer: /payload
+    required: false
+  - id: tool-comparison-runs
+    text_pattern: "tool_comparison"
+    documents: [main.tex, report.tex]
+    evidence:
+      artifact: tool_comparison
+      json_pointer: /payload
+    required: false
+  - id: robustness-suite
+    text_pattern: "robustness_results"
+    documents: [main.tex, report.tex]
+    evidence:
+      artifact: robustness_metrics
+      json_pointer: /payload
+    required: false

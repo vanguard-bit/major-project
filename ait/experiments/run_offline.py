@@ -18,6 +18,7 @@ from ait.experiments.risk_sensitivity import run_sensitivity_pipeline
 from ait.experiments.run_scenarios import _outcome_payload, _print_outcome
 from ait.experiments.scenario_loader import load_scenarios
 from ait.experiments.schema import ScenarioOutcome, labels_exact_match
+from ait.paper.check_stale import collect_input_hashes
 
 app = typer.Typer(add_completion=False, pretty_exceptions_show_locals=False)
 
@@ -188,6 +189,8 @@ def run_offline(
                 "sha256": _sha256_file(path),
             }
         )
+    repo_root = Path.cwd()
+    input_hashes = collect_input_hashes(repo_root)
     manifest = ArtifactEnvelope(
         provenance=collect_provenance(command, seed=SEED),
         experiment="offline_manifest",
@@ -195,11 +198,17 @@ def run_offline(
             "scenario_root": str(scenario_root),
             "incident_root": str(incident_root),
             "benchmark": config.model_dump(mode="json"),
+            "repo_root": str(repo_root),
         },
-        payload={"artifacts": entries, "artifact_count": len(entries)},
+        payload={
+            "artifacts": entries,
+            "artifact_count": len(entries),
+            "input_hashes": input_hashes,
+        },
     )
     _publish_manifest(output_root, manifest)
     typer.echo(f"Offline manifest: {len(entries)} artifacts")
+    typer.echo(f"Input hashes: {len(input_hashes)}")
     return 0
 
 

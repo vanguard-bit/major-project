@@ -53,20 +53,20 @@ Tester (AIT), an open-source framework combining dual-phase API
 stimulation with run-attributed marker checks to surface undeclared
 endpoints, sensitive fields, and baseline/mutated divergence---classes
 that static scope audits and server-focused fuzzers do not address.
-AIT is explicitly a \emph{proof-of-concept}: a three-scenario CRM mock
-suite yields precision and recall of $1.0$ on injected violations; a
-seven-scenario platform-inspired suite reports $100\%$ precision ($5$
-TP, $0$ FP) on declared labels; version-controlled YAML and a
-deterministic in-process runner enable reproducible tables. A live SaaS
-evaluation pipeline (\texttt{ait/live\_runner.py}) is implemented for
-instrumented, allowlisted sandbox probes against real provider APIs, but
-GitHub and Notion sandbox Task~6 execution remains \textbf{BLOCKED}
-without credentials and is marked \texttt{NOT RUN}---no live risk scores
-or timings are claimed here. Replayed public
-incident sketches align AIT categories with independently reported
-violations. Risk-score perturbation $\pm30\%$ leaves critical-band
-classification stable; full production generalization remains future
-work.
+AIT is explicitly a \emph{proof-of-concept}: offline mock and
+platform-inspired scenarios exercise injected labels through a
+deterministic runner; empirical counts, precision/recall/F1, risk scores,
+and timings are emitted only via shared generated LaTeX fragments under
+\texttt{results/generated/}. A live SaaS evaluation pipeline
+(\texttt{ait/live\_runner.py}) is implemented for instrumented,
+allowlisted sandbox probes against real provider APIs, but GitHub and
+Notion sandbox Task~6 execution remains \textbf{BLOCKED} without
+credentials and is marked \texttt{NOT RUN}---no live risk scores or
+timings are claimed here. Researcher-constructed traces from public
+disclosures provide replay plausibility evidence. Risk-weight
+perturbation analysis and Analysis Engine micro-benchmarks are reported
+from hashed offline artifacts; full production generalization remains
+future work.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -192,24 +192,21 @@ Section~\ref{sec:fn}.
         reconciliation---GitHub/Notion sandbox Task~6 remains
         \texttt{NOT RUN}/\textbf{BLOCKED} without credentials.
   \item A \emph{log-based replay} experiment applying AIT's detection
-        logic to real SaaS incident traces, providing a first
-        real-data validation signal.
+        logic to researcher-constructed traces from public disclosures,
+        providing a first plausibility signal.
   \item A \emph{false negative analysis} characterizing four evasion
         scenarios that defeat the current detection model.
-  \item A \emph{risk scoring sensitivity analysis} demonstrating
-        stable Critical-band classification across $\pm30\%$ weight
-        perturbation.
-  \item A \emph{multi-ecosystem mock evaluation harness} with seven
-        YAML-defined scenarios spanning Slack-, GitHub-, Gmail-, Notion-,
-        and Trello-style REST idioms (plus compliant baselines), with
-        automated aggregation for reproducible tabular results.
-  \item A \emph{read-only GitHub REST smoke probe} hitting multiple
-        undeclared paths (\texttt{/user/repos} with pagination,
-        \texttt{/user/orgs}), \emph{robustness-style} mock variants
-        (noisy logs, partial sensitive payloads, ambiguous paths), an
-        FN4 negative demo for aliased secret fields, and a
-        micro-benchmark of Analysis Engine latency versus synthetic
-        log width.
+  \item A \emph{risk scoring sensitivity analysis} over $\pm30\%$ weight
+        perturbation with band transitions recorded in offline artifacts.
+  \item A \emph{multi-ecosystem mock evaluation harness} with
+        YAML-defined platform-inspired scenarios spanning Slack-, GitHub-,
+        Gmail-, Notion-, and Trello-style REST idioms (plus compliant
+        baselines), with automated aggregation for reproducible tabular
+        results.
+  \item A \emph{read-only GitHub REST smoke probe} plan (empirical rows
+        \texttt{NOT RUN} without credentials), robustness/evasion YAML
+        suites, and a micro-benchmark of Analysis Engine latency versus
+        synthetic log width (generated timings).
 \end{enumerate}
 
 \subsection{Novelty and Positioning}
@@ -716,42 +713,34 @@ Three scenarios isolate and combine detection mechanisms:
 
 \subsection{Mock Environment: Detection Results}
 
+% CLAIM:mock-overall-f1
+% CLAIM:mock-category-metrics
 Table~\ref{tab:results} reports precision (P), recall (R), and F1 per
-finding category. A finding is a true positive if it correctly
-identifies a known-injected violation; false positive if it fires on
-a non-violation; false negative if it misses a known violation.
+finding category with TP/FP/FN denominators over the offline scenario
+corpus (CRM and platform-inspired mocks). A finding is a true positive
+if it correctly identifies a known-injected violation; false positive if
+it fires on a non-violation; false negative if it misses a known
+violation. Values are regenerated from
+\texttt{results/derived/scenario\_metrics.json}.
 
 \begin{table}[htbp]
-  \caption{Detection Performance, Mock Environment (3 Scenarios)}
+  \caption{Detection Performance, Offline Mock Corpus (category metrics
+  with micro-average; implementation validation under injected labels)}
   \label{tab:results}
   \centering
   \renewcommand{\arraystretch}{1.25}
-  \begin{tabular}{llccc}
-    \toprule
-    \textbf{Scenario} & \textbf{Category} & \textbf{P} & \textbf{R} & \textbf{F1} \\
-    \midrule
-    S1 & Hidden Endpoint       & 1.00 & 1.00 & 1.00 \\
-    S2 & Sensitive Field       & 1.00 & 1.00 & 1.00 \\
-    S3 & Hidden Endpoint       & 1.00 & 1.00 & 1.00 \\
-    S3 & Sensitive Field       & 1.00 & 1.00 & 1.00 \\
-    S3 & Behavioral Divergence & 1.00 & 1.00 & 1.00 \\
-    \midrule
-    \multicolumn{2}{l}{\textbf{Overall}} & \textbf{1.00} & \textbf{1.00} & \textbf{1.00} \\
-    \bottomrule
-  \end{tabular}
+  \footnotesize
+  \input{results/generated/mock_detection_results.tex}
 \end{table}
 
 \noindent\textit{Takeaway:} Under injected labels, AIT's implementation
-matches the intended DM1--DM3 logic with no false positives on this CRM
-slice.
+matches the intended DM1--DM3 logic on this controlled corpus.
 
-\noindent\textit{Interpretation note:} Perfect scores are expected in
-a deterministic, controlled environment with known-injected
-violations---they validate that the implementation correctly executes
-the defined detection logic, not that the system generalizes to
-unseen or adversarial inputs. External validity requires live platform
-evaluation (Section~\ref{sec:livesaas} and future work,
-Section~\ref{sec:future}).
+\noindent\textit{Interpretation note:} Perfect controlled scores, when
+observed, validate that the implementation executes the defined
+detection logic---not that the system generalizes to unseen or
+adversarial inputs. External validity requires live platform evaluation
+(Section~\ref{sec:livesaas} and future work, Section~\ref{sec:future}).
 
 \subsection{Platform-Inspired Mock Suite}
 \label{sec:platformmock}
@@ -778,38 +767,26 @@ scopes, expected endpoint allowlist, sensitive markers) and executed
 through the same Coordinator pipeline as the CRM suite. Risk scores
 follow Eq.~\eqref{eq:risk} with $(w_H,w_F,w_D)=(25,20,15)$.
 
+% CLAIM:platform-scenario-risks
 \begin{table}[htbp]
-  \caption{Platform-Inspired Mock Results (Seven Scenarios)}
+  \caption{Platform-Inspired Mock Results (risk scores from offline
+  scenario artifacts; synthetic mocks, not vendor production APIs)}
   \label{tab:platform}
   \centering
   \renewcommand{\arraystretch}{1.2}
   \footnotesize
   \setlength{\tabcolsep}{3pt}
-  \begin{tabular}{@{}cllccc@{}}
-    \toprule
-    \textbf{\#} & \textbf{Platform} & \textbf{Scenario} & \textbf{Risk} & \textbf{Sev.} & \textbf{Det.?} \\
-    \midrule
-    1 & Slack   & Bot token over-access         & 80 & High    & Yes \\
-    2 & GitHub  & PAT broad scope               & 65 & High    & Yes \\
-    3 & Google  & Readonly token write attempt  & 45 & Medium  & Yes \\
-    4 & Notion  & Read-only integration mutation& 55 & Medium  & Yes \\
-    5 & Trello  & Read token card creation      & 40 & Low     & Yes \\
-    6 & Slack   & Compliant bot                 & 0  & N/A     & No FP \\
-    7 & GitHub  & Compliant app                 & 0  & N/A     & No FP \\
-    \bottomrule
-  \end{tabular}
+  \input{results/generated/platform_scenario_results.tex}
 \end{table}
 
-\noindent\textit{Takeaway:} AIT maintains detection on heterogeneous mock
-idioms while reporting zero risk on the two compliant baselines.
+\noindent\textit{Takeaway:} AIT maintains detection on heterogeneous
+platform-inspired mock idioms while reporting zero risk on the
+compliant baselines included in the generated table.
 
-\noindent\textbf{Precision on this suite:} Treating scenarios 1--5 as
-positive-labeled violations and 6--7 as negative-labeled compliant
-integrations yields $\mathrm{TP}{=}5$, $\mathrm{FP}{=}0$, and
-$\mathrm{Precision}{=}1.0$. As with Table~\ref{tab:results}, perfect
-precision here reflects a deterministic mock corpus with known labels;
-it validates end-to-end wiring and reporting across multiple API
-idioms, not generalization to arbitrary production tenants.
+\noindent\textbf{Interpretation:} As with Table~\ref{tab:results},
+perfect agreement with declared labels on this deterministic corpus
+validates end-to-end wiring and reporting across multiple API idioms,
+not generalization to arbitrary production tenants.
 
 \subsection{Live SaaS Evaluation}
 \label{sec:livesaas}
@@ -830,21 +807,16 @@ surfaces are reached). Empirical result: \texttt{NOT RUN} (blocked).
 \noindent\textbf{Notion sandbox:} Declared read-path validation design
 (\texttt{GET /v1/users/me}). Empirical result: \texttt{NOT RUN} (blocked).
 
+% Live rows are generated; artifact currently null → NOT RUN (claim optional).
 \begin{table}[htbp]
-  \caption{Live SaaS Evaluation Results (Sandbox Accounts)}
+  \caption{Live SaaS Evaluation Results (Sandbox Accounts;
+  unavailable artifacts render as \texttt{NOT RUN})}
   \label{tab:live}
   \centering
   \renewcommand{\arraystretch}{1.2}
   \footnotesize
   \setlength{\tabcolsep}{3pt}
-  \begin{tabular}{@{}clllccc@{}}
-    \toprule
-    \textbf{\#} & \textbf{Platform} & \textbf{Scenario} & \textbf{Violation Type} & \textbf{Risk} & \textbf{Sev.} & \textbf{Det.?} \\
-    \midrule
-    1 & GitHub & Live scope boundary & --- & NOT RUN & --- & BLOCKED \\
-    2 & Notion & Read-path validation & --- & NOT RUN & --- & BLOCKED \\
-    \bottomrule
-  \end{tabular}
+  \input{results/generated/live_results.tex}
 \end{table}
 
 \noindent\textit{Takeaway:} Live sandbox rows remain unavailable until
@@ -865,193 +837,146 @@ Complementing the structured sandbox plans in
 Section~\ref{sec:livesaas}, a separate read-only probe is defined to
 exercise \texttt{api.github.com} under a stricter policy allowlisting only
 \texttt{/user}, with additional undeclared \texttt{/user/repos} and
-\texttt{/user/orgs} requests. Empirical smoke-probe results are
-\texttt{NOT RUN} (Task~6 blocked). When executed with a read-only PAT via
-\texttt{AIT\_GITHUB\_TOKEN}, the signal of interest is
+\texttt{/user/orgs} requests. Empirical smoke-probe results remain
+\texttt{NOT RUN} until a hashed live artifact is selected in
+\texttt{configs/paper\_artifacts.yaml}. When executed with a read-only
+PAT via \texttt{AIT\_GITHUB\_TOKEN}, the signal of interest is
 \emph{policy mismatch}, not server-side exploitability.
 
 \subsection{Robustness and Noise}
 \label{sec:robust}
 
-To move beyond purely ``clean'' traces, we add three CRM variants:
-(i)~\textbf{Noisy logs}---eight benign \texttt{/misc/health} polls per
-phase interleaved with CRM calls; billing remains undeclared and is
-still flagged when touched in the mutated phase.
-(ii)~\textbf{Partial sensitive exposure}---billing responses return only
-\texttt{billing\_email} in the baseline phase and the full record in the
-mutated phase, while both markers remain policy-relevant; AIT still
-raises sensitive-field findings when markers appear.
-(iii)~\textbf{Ambiguous path}---an integration calls
-\texttt{/api/v1/customers/\{id\}/profile}, which is not on the
-allowlist, alongside canonical CRM paths. In automated tests, these
-conditions preserve expected violations without collapsing into false
-negatives on the hidden-endpoint channel.
-(iv)~\textbf{FN4 field-alias negative}---the IUT reads
-\texttt{/api/v1/customers/\{id\}/extension}, which returns a synthetic
-\texttt{masked\_credential} field while \texttt{sensitive\_markers}
-lists only \texttt{billing\_email}. Automated tests confirm
-\texttt{SENSITIVE\_FIELD\_ACCESS} is \emph{not} raised and risk stays
-zero, matching the FN4 discussion in Section~\ref{sec:fn}: marker-based
-triage misses aliased secret field names by design.
+To move beyond purely ``clean'' traces, the repository includes
+robustness and evasion scenario YAML (noise, partial exposure, path
+ambiguity, FN4 field-alias negatives, and model-boundary cases).
+Table~\ref{tab:robust} reports suite status from a selected
+\texttt{robustness\_metrics} artifact when present; otherwise rows are
+\texttt{NOT RUN} (the offline release gate does not currently select a
+robustness artifact).
+
+\begin{table}[htbp]
+  \caption{Robustness / Evasion Suite Status}
+  \label{tab:robust}
+  \centering
+  \renewcommand{\arraystretch}{1.2}
+  \input{results/generated/robustness_results.tex}
+\end{table}
 
 \subsection{Scalability of Analysis}
 \label{sec:scale}
 
+% CLAIM:benchmark-timings
 \noindent\textbf{Isolation note:} This micro-benchmark measures Analysis
 Engine latency only; full end-to-end Coordinator runs remain dominated
 by network I/O and OAuth/token work; live SaaS
 timings in Section~\ref{sec:livesaas} are \texttt{NOT RUN}.
 
-Because the Coordinator's HTTP fan-out grows with integration surface,
-we isolate Analysis Engine cost: synthetic audit logs with
-$N \in \{10,50,100\}$ allowlisted paths plus one undeclared path in
-\emph{both} phases (so no spurious divergence signal) are passed to
-\texttt{analyze\_run}. Table~\ref{tab:scale} reports mean wall time on a
-development laptop (Python~3.13, 40 runs averaged per row). Findings
-counts remain stable (one hidden-endpoint finding; risk score 25),
-indicating consistent triage behavior as log width grows within this
-micro-benchmark.
+Table~\ref{tab:scale} reports median, p95, and MAD wall time from the
+hashed offline benchmark artifact (warmups and repetitions recorded in
+provenance). Risk scores are taken from the same synthetic-log
+protocol.
 
 \begin{table}[htbp]
   \caption{Analysis Engine Micro-Benchmark (Synthetic Log Width;
-  rounded timings from one development machine---regenerate via
-  \texttt{scripts/benchmark\_scale.py}.)}
+  median/p95/MAD from offline \texttt{benchmark\_summary} artifact)}
   \label{tab:scale}
   \centering
   \renewcommand{\arraystretch}{1.2}
   \footnotesize
-  \begin{tabular}{@{}lrrr@{}}
-    \toprule
-    \textbf{Allowlisted paths} & \textbf{Time (ms)} & \textbf{Findings} & \textbf{Risk} \\
-    \midrule
-    10  & 0.05  & 1 & 25 \\
-    50  & 0.22  & 1 & 25 \\
-    100 & 0.72  & 1 & 25 \\
-    \bottomrule
-  \end{tabular}
+  \input{results/generated/benchmark_results.tex}
 \end{table}
 
 \noindent\textit{Takeaway:} Detection output is stable as synthetic log
-width grows; analysis time increases modestly with cardinality here and
-does not reflect WAN latency.
+width grows within this micro-benchmark; analysis time does not reflect
+WAN latency.
 
 \subsection{Tool Capability Comparison}
 \label{sec:toolcompeval}
 
-We applied RESTler and EvoMaster to the same Mock SaaS using the same
-OpenAPI specification. As expected from their design, both tools
-correctly surface server-side input validation errors and OpenAPI
-specification violations (their intended use case) and generate zero
-findings for integration-policy violations
-(Table~\ref{tab:comparison}). This is not a failure of those tools
-but a confirmation that they solve an adjacent, complementary problem.
-AIT should be deployed \emph{alongside} server-focused fuzzers, not
-in place of them.
+RESTler and EvoMaster target complementary server-side fault classes.
+A pinned Docker comparison protocol lives under \texttt{comparison/};
+until a hashed \texttt{tool\_comparison} artifact is selected,
+Table~\ref{tab:comparison} reports \texttt{NOT RUN} rather than
+invented detection outcomes. Do not interpret absence as ``no findings.''
 
 \begin{table}[htbp]
-  \caption{Tool Capability Comparison (Adjacent Problem Spaces)}
+  \caption{Tool Capability Comparison (selected artifact or
+  \texttt{NOT RUN})}
   \label{tab:comparison}
   \centering
   \renewcommand{\arraystretch}{1.25}
-  \begin{tabular}{lccc}
-    \toprule
-    \textbf{Finding Category} & \textbf{AIT} & \textbf{RESTler} & \textbf{EvoMaster} \\
-    \midrule
-    Hidden Endpoint Access      & \checkmark & --         & --         \\
-    Sensitive Field Access      & \checkmark & --         & --         \\
-    Behavioral Divergence       & \checkmark & --         & --         \\
-    Policy Violation (live)     & \checkmark & --         & --         \\
-    Server-side Input Errors    & --         & \checkmark & \checkmark \\
-    OpenAPI Spec Violations     & --         & \checkmark & \checkmark \\
-    \bottomrule
-  \end{tabular}
+  \input{results/generated/tool_comparison.tex}
 \end{table}
 
-\noindent\textit{Takeaway:} The taxonomy clarifies complementary
-deployment: server fuzzers for implementation bugs, AIT for integration
-policy drift.
+\noindent\textit{Takeaway:} When executed, the taxonomy is intended to
+clarify complementary deployment: server fuzzers for implementation bugs,
+AIT for integration policy drift. No external-tool run is claimed here.
 
 \subsection{Log-Based Replay: Real-Data Signal}
 \label{sec:replay}
 
+% CLAIM:replay-exact-match
 To provide a first real-data validation signal without requiring live
 platform credentials, we conducted a log-based replay experiment.
-Public post-mortem disclosures and audit log excerpts from three
-documented SaaS security incidents---CircleCI (2023)~\cite{circleci2023},
+Public post-mortem disclosures from three documented SaaS security
+incidents---CircleCI (2023)~\cite{circleci2023},
 Okta (2022)~\cite{okta2022}, and the GitHub OAuth token
 exposure (2022)~\cite{github2022}---were manually reconstructed into
-\texttt{CapturedExchange} sequences using documented API paths,
-access patterns, and timeline information from official disclosures.
-These reconstructed traces were then fed directly to AIT's Analysis
-Engine (bypassing the live IUT invocation phase), and findings were
-compared against the violation types documented in the post-mortems.
-Replay validates semantic alignment between AIT's detection categories
-and independently reported real-world violations, complementing the
-direct sandbox evidence from Section~\ref{sec:livesaas}.
+\texttt{CapturedExchange} sequences (researcher-constructed traces from
+public disclosures, not ground-truth API logs). These traces were fed
+to AIT's Analysis Engine and compared against expected categories.
+Table~\ref{tab:replay} is regenerated from the hashed replay artifact.
 
 \begin{table}[htbp]
-  \caption{Log-Based Replay: AIT Detection vs.\ Documented Violations}
+  \caption{Log-Based Replay: Expected vs.\ Observed Categories
+  (researcher-constructed traces)}
   \label{tab:replay}
   \centering
   \renewcommand{\arraystretch}{1.25}
-  \begin{tabular}{llll}
-    \toprule
-    \textbf{Incident} & \textbf{Documented} & \textbf{AIT} & \textbf{Match} \\
-                      & \textbf{Violation}  & \textbf{Finding} & \\
-    \midrule
-    CircleCI 2023     & Long-lived token    & HIDDEN\_ENDPOINT & \checkmark \\
-                      & with excess scope   & (C1) & \\
-    Okta 2022         & 3rd-party tool with & HIDDEN\_ENDPOINT & \checkmark \\
-                      & excess permissions  & (C1) + C2 & \\
-    GitHub 2022       & OAuth token scope   & SENSITIVE\_FIELD & \checkmark \\
-                      & over-exposure       & (C2) & \\
-    \bottomrule
-  \end{tabular}
+  \footnotesize
+  \input{results/generated/replay_results.tex}
 \end{table}
 
-\noindent\textit{Takeaway:} Each replayed incident's dominant abuse mode
-maps to the same AIT finding family reported in post-mortems.
-
-\noindent\textit{Limitations of this experiment:} The reconstructed
-traces are approximations based on public disclosures; they are not
-ground-truth API logs. This experiment provides \emph{plausibility
-evidence} that AIT's detection categories map to real incident classes,
-not empirical precision/recall on real platform data.
+\noindent\textit{Takeaway:} Replay provides \emph{plausibility evidence}
+that AIT's detection categories map to independently reported incident
+classes, not empirical precision/recall on real platform data.
 
 \subsection{Risk Score and Sensitivity Analysis}
 
-Under Scenario~S3:
-$S = \min(100, 1{\times}25 + 2{\times}20 + 1{\times}15) = 80$,
-placing the integration in the Critical band.
-
-Table~\ref{tab:sensitivity} reports sensitivity across all three
-scenarios by varying each weight $\pm30\%$ while holding others
-fixed.
+% CLAIM:risk-sensitivity-bands
+Under the default weights $(w_H,w_F,w_D)=(25,20,15)$, multi-finding
+scenarios can enter the Critical band ($>75$). Table~\ref{tab:sensitivity}
+reports $\pm30\%$ single-weight perturbations for selected CRM scenarios
+from the hashed sensitivity artifact.
 
 \begin{table}[htbp]
-  \caption{Risk Score Sensitivity ($\pm30\%$ Weight Variation, All Scenarios)}
+  \caption{Risk Score Sensitivity ($\pm30\%$ Weight Variation;
+  selected CRM scenarios from offline artifacts)}
   \label{tab:sensitivity}
   \centering
   \renewcommand{\arraystretch}{1.25}
-  \begin{tabular}{llccc}
-    \toprule
-    \textbf{Scenario} & \textbf{Weight Varied} & \textbf{$-30\%$} & \textbf{Base} & \textbf{$+30\%$} \\
-    \midrule
-    S1 & $w_H$ (25) & 17.5 & 25  & 32.5 \\
-    S2 & $w_F$ (20) & 14.0 & 20  & 26.0 \\
-    S3 & $w_H$ (25) & 72.5 & 80  & 87.5 \\
-    S3 & $w_F$ (20) & 68.0 & 80  & 92.0 \\
-    S3 & $w_D$ (15) & 75.5 & 80  & 84.5 \\
-    \bottomrule
-  \end{tabular}
+  \footnotesize
+  \input{results/generated/risk_sensitivity.tex}
 \end{table}
 
-S3 remains in the Critical band ($\geq76$) across all variations.
-S1 and~S2 shift band only at $+30\%$ of their respective weights
-(Low$\to$Medium boundary at 26). This shows that for multi-category
-violations the scoring is band-stable; for single-category violations,
-boundary cases exist and should be interpreted with the disclaimer
-that the score is a triage signal, not a precise risk measurement.
+Band transitions, when present, are recorded in
+\texttt{sensitivity\_summary}; the score remains a triage signal, not a
+precise risk measurement.
+
+% CLAIM:artifact-provenance
+\subsection{Artifact Provenance}
+
+Table~\ref{tab:provenance} lists the selected paper artifacts and
+SHA-256 prefixes used for this compilation.
+
+\begin{table}[htbp]
+  \caption{Selected Artifact Provenance}
+  \label{tab:provenance}
+  \centering
+  \renewcommand{\arraystretch}{1.2}
+  \footnotesize
+  \input{results/generated/artifact_provenance.tex}
+\end{table}
 
 \subsection{Discussion}
 

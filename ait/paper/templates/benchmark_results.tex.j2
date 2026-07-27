@@ -1,0 +1,13 @@
+\begin{tabular}{@{}lrrrr@{}}
+  \toprule
+  \textbf{Allowlisted paths} & \textbf{Median (ms)} & \textbf{p95 (ms)} & \textbf{MAD (ms)} & \textbf{Risk} \\
+  \midrule
+{% if available %}
+{% for row in rows %}
+  {{ row.width }} & {{ row.median }} & {{ row.p95 }} & {{ row.mad }} & {{ row.risk }} \\
+{% endfor %}
+{% else %}
+  --- & NOT RUN & NOT RUN & NOT RUN & NOT RUN \\
+{% endif %}
+  \bottomrule
+\end{tabular}

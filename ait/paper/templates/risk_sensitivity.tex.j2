@@ -1,0 +1,13 @@
+\begin{tabular}{llccc}
+  \toprule
+  \textbf{Scenario} & \textbf{Weight Varied} & \textbf{$-30\%$} & \textbf{Base} & \textbf{$+30\%$} \\
+  \midrule
+{% if available and rows %}
+{% for row in rows %}
+  \texttt{ {{ row.scenario }} } & {{ row.weight }} & {{ row.minus }} & {{ row.base }} & {{ row.plus }} \\
+{% endfor %}
+{% else %}
+  --- & --- & NOT RUN & NOT RUN & NOT RUN \\
+{% endif %}
+  \bottomrule
+\end{tabular}

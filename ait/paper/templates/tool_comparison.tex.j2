@@ -1,0 +1,9 @@
+\begin{tabular}{lccc}
+  \toprule
+  \textbf{Finding Category} & \textbf{AIT} & \textbf{RESTler} & \textbf{EvoMaster} \\
+  \midrule
+{% for row in rows %}
+  {{ row.category }} & {{ row.ait }} & {{ row.restler }} & {{ row.evomaster }} \\
+{% endfor %}
+  \bottomrule
+\end{tabular}

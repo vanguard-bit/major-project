@@ -1,0 +1,25 @@
+schema_version: 1.0.0
+offline_manifest:
+  path: results/derived/offline_manifest.json
+  sha256: 16bb297858e6b53cf0fd734c60eb617e39a360aafab2486804d95f4fc4e4057f
+scenario_metrics:
+  path: results/derived/scenario_metrics.json
+  sha256: 49b55c0859b37ebcccd67c1179bdf2cc276a71375911d2d5b2852d8c76d2b939
+sensitivity_summary:
+  path: results/derived/sensitivity_summary.json
+  sha256: 4be47d441038175c615a437bebc35b2b2313397988aeda3aab30aa1a32788fff
+sensitivity_rows:
+  path: results/raw/sensitivity/sensitivity_rows.json
+  sha256: 5b1bdb7717477a1eb2ebd04282aa30349b53abbfe8d0f8b7ff28faa5fb1ad0f8
+replay_match_table:
+  path: results/derived/replay_match_table.json
+  sha256: 545b46968833d387f90c04537b872f26adbcf5472d8334182ac289900f5fdc1a
+benchmark_summary:
+  path: results/derived/benchmark_summary.json
+  sha256: 60d1a62e68a3497775e51fc8337f392abd590e53172d02fcfdeae74c274ca908
+robustness_metrics: null
+live_runs:
+  github_readonly: null
+  github_smoke: null
+  notion_readonly: null
+tool_comparison: null

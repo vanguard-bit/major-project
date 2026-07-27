@@ -1,0 +1,13 @@
+\begin{tabular}{@{}cllccc@{}}
+  \toprule
+  \textbf{\#} & \textbf{Platform} & \textbf{Scenario} & \textbf{Risk} & \textbf{Sev.} & \textbf{Det.?} \\
+  \midrule
+{% if available and rows %}
+{% for row in rows %}
+  {{ row.index }} & {{ row.platform }} & {{ row.scenario }} & {{ row.risk }} & {{ row.severity }} & {{ row.detected }} \\
+{% endfor %}
+{% else %}
+  --- & --- & --- & NOT RUN & --- & NOT RUN \\
+{% endif %}
+  \bottomrule
+\end{tabular}

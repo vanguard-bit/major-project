@@ -1,0 +1,15 @@
+\begin{tabular}{lcccccc}
+  \toprule
+  \textbf{Category} & \textbf{P} & \textbf{R} & \textbf{F1} & \textbf{TP} & \textbf{FP} & \textbf{FN} \\
+  \midrule
+{% if available %}
+{% for row in rows %}
+  {{ row.category }} & {{ row.precision }} & {{ row.recall }} & {{ row.f1 }} & {{ row.tp }} & {{ row.fp }} & {{ row.fn }} \\
+{% endfor %}
+  \midrule
+  \textbf{Overall (micro)} & \textbf{ {{ overall.precision }} } & \textbf{ {{ overall.recall }} } & \textbf{ {{ overall.f1 }} } & {{ overall.tp }} & {{ overall.fp }} & {{ overall.fn }} \\
+{% else %}
+  --- & NOT RUN & NOT RUN & NOT RUN & --- & --- & --- \\
+{% endif %}
+  \bottomrule
+\end{tabular}

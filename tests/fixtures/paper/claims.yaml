@@ -1,0 +1,17 @@
+# Fixture claims registry for paper automation tests.
+schema_version: "1.0.0"
+claims:
+  - id: mock-overall-f1
+    text_pattern: "Overall.*F1|micro.?average F1|\\\\input\\{results/generated/mock_detection_results"
+    documents: [main.tex, report.tex]
+    evidence:
+      artifact: scenario_metrics
+      json_pointer: /payload/micro/f1
+    required: true
+  - id: live-github-policy-mismatch
+    text_pattern: "GitHub.*policy|live_results"
+    documents: [main.tex, report.tex]
+    evidence:
+      artifact: github_smoke
+      json_pointer: /payload/report/findings
+    required: false
