@@ -352,24 +352,61 @@ def _benchmark_rows(doc: dict[str, Any] | None) -> tuple[list[dict[str, Any]], d
     return rows, meta
 
 
-def _live_rows(manifest: PaperArtifactsManifest) -> list[dict[str, Any]]:
+def _live_rows(
+    manifest: PaperArtifactsManifest,
+    documents: dict[str, dict[str, Any] | None],
+) -> list[dict[str, Any]]:
     specs = [
         ("GitHub", "Live scope boundary", "github_readonly"),
         ("Notion", "Read-path validation", "notion_readonly"),
+        ("Google", "OAuth userinfo scope", "google_readonly"),
         ("GitHub", "REST smoke probe", "github_smoke"),
+        ("Google", "Cloud Resource Manager smoke", "google_smoke"),
     ]
     rows = []
     for index, (platform, scenario, key) in enumerate(specs, start=1):
         available = manifest.is_available(key)
+        if not available:
+            rows.append(
+                {
+                    "index": index,
+                    "platform": platform,
+                    "scenario": scenario,
+                    "violation": "---",
+                    "risk": "NOT RUN",
+                    "severity": "---",
+                    "detected": "BLOCKED",
+                }
+            )
+            continue
+        doc = documents.get(key) or {}
+        payload = doc.get("payload") if isinstance(doc, dict) else {}
+        report = (payload or {}).get("report") or {}
+        hidden = report.get("hidden_endpoints") or []
+        findings = report.get("findings") or []
+        categories = sorted({f.get("category") for f in findings if f.get("category")})
+        if hidden:
+            violation = "Hidden endpoint: " + ", ".join(str(h) for h in hidden)
+            detected = "Yes"
+        elif findings:
+            violation = ", ".join(str(c) for c in categories)
+            detected = "Yes"
+        else:
+            violation = "None"
+            detected = "No FP"
+        severities = [f.get("severity") for f in findings if f.get("severity")]
+        severity = severities[0] if severities else "---"
+        if isinstance(severity, str):
+            severity = severity.capitalize()
         rows.append(
             {
                 "index": index,
                 "platform": platform,
                 "scenario": scenario,
-                "violation": "---" if not available else "see artifact",
-                "risk": "NOT RUN" if not available else "see artifact",
-                "severity": "---",
-                "detected": "BLOCKED" if not available else "see artifact",
+                "violation": violation,
+                "risk": format_risk(report.get("risk_score")),
+                "severity": severity if findings else "---",
+                "detected": detected,
             }
         )
     return rows
@@ -488,6 +525,8 @@ def _provenance_rows(manifest: PaperArtifactsManifest, root: Path) -> list[dict[
         "github_readonly",
         "github_smoke",
         "notion_readonly",
+        "google_readonly",
+        "google_smoke",
     ):
         if not manifest.is_available(name):
             rows.append(
@@ -530,7 +569,18 @@ def render_all(
             "rows": _platform_rows(manifest, base),
             "available": metrics is not None,
         },
-        "live_results": {"rows": _live_rows(manifest)},
+        "live_results": {
+            "rows": _live_rows(
+                manifest,
+                {
+                    "github_readonly": _read_selected(manifest, base, "github_readonly"),
+                    "notion_readonly": _read_selected(manifest, base, "notion_readonly"),
+                    "google_readonly": _read_selected(manifest, base, "google_readonly"),
+                    "github_smoke": _read_selected(manifest, base, "github_smoke"),
+                    "google_smoke": _read_selected(manifest, base, "google_smoke"),
+                },
+            )
+        },
         "replay_results": {
             "rows": _replay_rows(_read_selected(manifest, base, "replay_match_table")),
             "available": manifest.is_available("replay_match_table"),

@@ -84,7 +84,7 @@ class LivePlan(BaseModel):
 
     schema_version: Literal["1.0.0"]
     id: str
-    provider: Literal["github", "notion"]
+    provider: Literal["github", "notion", "google"]
     environment: Literal["sandbox", "production-readonly"]
     base_url: HttpUrl
     allowed_hosts: set[str]
@@ -251,6 +251,12 @@ def resolve_request_url(plan: LivePlan, request: LiveRequestSpec) -> httpx.URL:
         raise SafetyRejectionError("URL fragments are not allowed")
 
     approved = _approved_origin(plan.base_url)
+    allowed_idna = set()
+    for item in plan.allowed_hosts:
+        try:
+            allowed_idna.add(item.encode("idna").decode("ascii").lower())
+        except UnicodeError:
+            allowed_idna.add(item.lower())
 
     if "://" in raw:
         path_part = urlsplit(raw).path or "/"
@@ -274,7 +280,16 @@ def resolve_request_url(plan: LivePlan, request: LiveRequestSpec) -> httpx.URL:
 
     origin = _url_origin(url)
     host = origin[1]
-    if origin != approved:
+    if host not in allowed_idna:
+        raise SafetyRejectionError(f"host '{host}' is not in the allowlist")
+    # Relative requests must stay on the plan base origin; absolute URLs may use
+    # any allowlisted host on the default https port (needed for multi-host Google APIs).
+    if "://" in raw:
+        if origin[2] != 443:
+            raise SafetyRejectionError(
+                f"port {origin[2]} does not match approved origin port 443"
+            )
+    elif origin != approved:
         if origin[2] != approved[2]:
             raise SafetyRejectionError(
                 f"port {origin[2]} does not match approved origin port {approved[2]}"
@@ -286,14 +301,6 @@ def resolve_request_url(plan: LivePlan, request: LiveRequestSpec) -> httpx.URL:
         raise SafetyRejectionError(
             f"host '{host}' is not in the approved origin (expected '{approved[1]}')"
         )
-    allowed_idna = set()
-    for item in plan.allowed_hosts:
-        try:
-            allowed_idna.add(item.encode("idna").decode("ascii").lower())
-        except UnicodeError:
-            allowed_idna.add(item.lower())
-    if host not in allowed_idna:
-        raise SafetyRejectionError(f"host '{host}' is not in the allowlist")
     return url
 
 
@@ -360,6 +367,10 @@ def _provider_headers(plan: LivePlan, token: str) -> dict[str, str]:
         return build_headers(token)
     if plan.provider == "notion":
         from ait.providers.notion import build_headers
+
+        return build_headers(token)
+    if plan.provider == "google":
+        from ait.providers.google import build_headers
 
         return build_headers(token)
     raise SafetyRejectionError(f"unsupported provider {plan.provider}")
@@ -505,10 +516,9 @@ def _validate_redirect_location(
         ) from exc
     try:
         origin = _url_origin(absolute)
-        approved = _approved_origin(plan.base_url)
-        if origin != approved:
-            raise SafetyRejectionError("redirect origin mismatch")
         host = origin[1]
+        if origin[0] != "https":
+            raise SafetyRejectionError("redirect scheme is not https")
         allowed_idna = set()
         for item in plan.allowed_hosts:
             try:

@@ -194,3 +194,21 @@ def test_analyze_run_normalizes_query_parameter_order():
     report = analyze_run("run-q", target, exchanges)
     assert report.hidden_endpoints == []
     assert report.reached_endpoints == ["/api/v1/customers?a=1&b=2"]
+
+
+def test_single_phase_run_does_not_score_baseline_only_divergence():
+    target = _demo_target(expected_endpoints=["/user"])
+    exchanges = [
+        CapturedExchange(
+            run_id="live-1",
+            phase="baseline",
+            method="GET",
+            path="/user",
+            status_code=200,
+            response_body={"login": "x"},
+        )
+    ]
+    report = analyze_run("live-1", target, exchanges)
+    assert report.divergence_summary == []
+    assert report.findings == []
+    assert report.risk_score == 0.0

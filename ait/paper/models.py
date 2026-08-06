@@ -59,6 +59,8 @@ class LiveRunsRefs(BaseModel):
     github_readonly: ArtifactRef | None = None
     github_smoke: ArtifactRef | None = None
     notion_readonly: ArtifactRef | None = None
+    google_readonly: ArtifactRef | None = None
+    google_smoke: ArtifactRef | None = None
 
 
 class PaperArtifactsManifest(BaseModel):
@@ -75,7 +77,13 @@ class PaperArtifactsManifest(BaseModel):
     tool_comparison: ArtifactRef | None = None
 
     def ref_for(self, name: str) -> ArtifactRef | None:
-        if name in {"github_readonly", "github_smoke", "notion_readonly"}:
+        if name in {
+            "github_readonly",
+            "github_smoke",
+            "notion_readonly",
+            "google_readonly",
+            "google_smoke",
+        }:
             return getattr(self.live_runs, name)
         return getattr(self, name, None)
 
@@ -98,7 +106,13 @@ class PaperArtifactsManifest(BaseModel):
             ref = getattr(self, key)
             if ref is not None:
                 out[key] = ref
-        for key in ("github_readonly", "github_smoke", "notion_readonly"):
+        for key in (
+            "github_readonly",
+            "github_smoke",
+            "notion_readonly",
+            "google_readonly",
+            "google_smoke",
+        ):
             ref = getattr(self.live_runs, key)
             if ref is not None:
                 out[key] = ref
@@ -190,7 +204,13 @@ def load_paper_artifacts_manifest(
 
     if verify:
         base = Path(root) if root is not None else path.parent.parent
-        live_keys = {"github_readonly", "github_smoke", "notion_readonly"}
+        live_keys = {
+            "github_readonly",
+            "github_smoke",
+            "notion_readonly",
+            "google_readonly",
+            "google_smoke",
+        }
         for name, ref in manifest.selected_refs().items():
             target = Path(ref.path)
             if not target.is_absolute():

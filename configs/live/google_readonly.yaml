@@ -1,0 +1,16 @@
+schema_version: "1.0.0"
+id: google-readonly
+provider: google
+environment: sandbox
+base_url: https://www.googleapis.com
+allowed_hosts:
+  - www.googleapis.com
+  - cloudresourcemanager.googleapis.com
+token_env: AIT_GOOGLE_TOKEN
+expected_endpoints:
+  - /oauth2/v2/userinfo
+sensitive_markers: []
+requests:
+  - method: GET
+    path: /oauth2/v2/userinfo
+    phase: baseline

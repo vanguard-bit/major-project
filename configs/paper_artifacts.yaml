@@ -21,9 +21,21 @@ robustness_metrics:
   path: results/derived/robustness_metrics.json
   sha256: 192c9c2aa5453fc28da85ac54e21b09d918f74f5161e5c4dea3d9244d4b42bcc
 live_runs:
-  github_readonly: null
-  github_smoke: null
-  notion_readonly: null
+  github_readonly:
+    path: results/raw/live/github-readonly/github-readonly-20260727T073251896080Z-9ca52435.json
+    sha256: 093e62f4bbd72579bca15a57c90cf0a173ae7e674bb11d6fae3b9c38b624058f
+  github_smoke:
+    path: results/raw/live/github-smoke/github-smoke-20260727T073252744441Z-911e040c.json
+    sha256: 309dab9bdcbac815c56f729e1b2b8a470836046697705f7804ed477bb183244e
+  notion_readonly:
+    path: results/raw/live/notion-readonly/notion-readonly-20260727T073254792041Z-8d8507a9.json
+    sha256: 5deba96d0971c36bd11676e02dc42bce88811ba2f90285ad2a1faed5f601be47
+  google_readonly:
+    path: results/raw/live/google-readonly/google-readonly-20260727T075515481231Z-a24c6c15.json
+    sha256: 8a177677097c5da9cfda4a588bb662fef6836692197018267edf1a07763957f7
+  google_smoke:
+    path: results/raw/live/google-smoke/google-smoke-20260727T075516032903Z-4d0a5a31.json
+    sha256: 1bcd4b9076d378f8af96b5376dd4f251f082de0e9963edee347c4dfb0b922853
 tool_comparison: null
 reproducibility:
   path: results/derived/reproducibility.json

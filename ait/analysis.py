@@ -113,8 +113,18 @@ def analyze_run(
     for exchange, path in normalized_exchanges:
         by_phase[exchange.phase].add(path)
 
-    baseline_only = sorted(by_phase.get("baseline", set()) - by_phase.get("mutated", set()))
-    mutated_only = sorted(by_phase.get("mutated", set()) - by_phase.get("baseline", set()))
+    # Divergence is only meaningful when both phases were executed.
+    both_phases_present = bool(by_phase.get("baseline")) and bool(by_phase.get("mutated"))
+    baseline_only = (
+        sorted(by_phase.get("baseline", set()) - by_phase.get("mutated", set()))
+        if both_phases_present
+        else []
+    )
+    mutated_only = (
+        sorted(by_phase.get("mutated", set()) - by_phase.get("baseline", set()))
+        if both_phases_present
+        else []
+    )
     divergence_summary: list[str] = []
     if baseline_only:
         divergence_summary.append(f"Baseline-only endpoints: {', '.join(baseline_only)}")

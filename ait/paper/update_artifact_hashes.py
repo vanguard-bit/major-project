@@ -22,7 +22,13 @@ ARTIFACT_KEYS = (
     "reproducibility",
     "tool_comparison",
 )
-LIVE_KEYS = ("github_readonly", "github_smoke", "notion_readonly")
+LIVE_KEYS = (
+    "github_readonly",
+    "github_smoke",
+    "notion_readonly",
+    "google_readonly",
+    "google_smoke",
+)
 
 # Default paths filled when a key is null but the offline gate produced the file.
 DEFAULT_PATHS = {

@@ -22,4 +22,6 @@ live_runs:
   github_readonly: null
   github_smoke: null
   notion_readonly: null
+  google_readonly: null
+  google_smoke: null
 tool_comparison: null
