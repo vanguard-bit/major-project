@@ -175,3 +175,49 @@ button.secondary {
   border: 1px solid #badbcc;
   color: #0f5132;
 }
+
+.recent-runs {
+  margin: 1.5rem 0;
+}
+
+.recent-runs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.recent-runs-header h2 {
+  margin: 0;
+}
+
+.recent-runs-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+}
+
+.recent-runs-list li {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.recent-runs-list li:last-child {
+  border-bottom: none;
+}
+
+.demo-mode-toggle {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  max-width: none;
+}
+
+.muted {
+  color: #6c757d;
+}
