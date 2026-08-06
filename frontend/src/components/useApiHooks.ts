@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './ApiClient';
 import type { Finding, RunRecord, TargetConfig } from '../types/api';
@@ -43,6 +43,9 @@ export function useStartRun() {
 
 export function useRun(runId: string, enabled = true) {
   const pollStartedAt = useRef(Date.now());
+  useEffect(() => {
+    pollStartedAt.current = Date.now();
+  }, [runId]);
   return useQuery({
     queryKey: ['run', runId],
     queryFn: () => api.get(`/runs/${runId}`).then((r) => r.data as RunRecord),
