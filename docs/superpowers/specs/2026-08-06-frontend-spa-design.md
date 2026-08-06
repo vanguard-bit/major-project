@@ -87,7 +87,7 @@ UI demo toggle may override via `localStorage` key `ait.demoMode` (see Demo-mode
 - `npm run test` — Vitest
 - `npm run test:e2e` — Playwright (optional; requires local services)
 
-### Vite proxy (dev)
+### Vite proxy (dev) and CORS
 
 Do **not** proxy `'/'` (that would steal the SPA). Prefer path-specific proxying, e.g.:
 
@@ -101,7 +101,9 @@ server: {
 }
 ```
 
-Alternatively, keep axios `baseURL` pointed at `:8000` and rely on coordinator CORS. Path-specific proxy is the safe local-dev default when using relative API paths; if using absolute `VITE_API_BASE_URL`, proxy is optional.
+**Path consistency:** If using the Vite proxy, frontend API calls should use **relative** paths (e.g. `/targets`) so the proxy works without environment-specific code. If preferring absolute URLs, set axios `baseURL` from `VITE_API_BASE_URL` and ensure `.env` matches the running coordinator.
+
+**CORS note:** If you choose absolute `VITE_API_BASE_URL` (browser calls `:8000` directly) instead of a Vite path-proxy, enable CORS on the coordinator — or keep the path-proxy. Otherwise local browser requests will fail with opaque CORS errors.
 
 ## Routes & page responsibilities
 
@@ -275,12 +277,15 @@ export const TERMINAL_RUN_STATUSES = new Set([
 
 `useRun` `refetchInterval`: return `false` when `data.status` is in `TERMINAL_RUN_STATUSES`, otherwise `3000`.
 
+**Backoff safety:** Poll at 3000ms while status is non-terminal. After ~5 minutes of continuous polling **or** after 5 consecutive fetch failures, stop aggressive polling (set `refetchInterval` to `false` or escalate to a slower interval such as 30s) and show a “Still waiting — refresh manually” affordance. This avoids runaway requests on flaky networks.
+
 If the live API uses different terminal strings, update this set to match server values (document any mismatch in README).
 
 ### ApiClient
 
 - `axios.create({ baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000', timeout: 15000 })`
 - Helper `mapValidationErrorsToForm(err)` parses FastAPI 422 `detail[]` (`loc`, `msg`) into `{ [field]: message }` for `setError`
+- **422 `loc` edge-case:** FastAPI `loc` may look like `["body","field"]`, `["body","token_config","client_id"]`, or `["query","field"]`. Prefer the **last string token** in `loc` as the form field name (for nested keys, map to the leaf name the form uses, e.g. `client_id`).
 
 ### Mutations
 
@@ -413,6 +418,7 @@ Minimal GitHub Actions job (optional but recommended):
 - `working-directory: frontend`
 - `npm ci`
 - `npm test`
+- `npm run build` (or equivalent `tsc` typecheck) — catch type errors early
 
 Do **not** run Playwright in default CI unless services are orchestrated.
 
@@ -478,4 +484,3 @@ Include at least: `node_modules/`, `dist/`, `.env`, `coverage/`, Playwright arti
 - Match FastAPI field names exactly (`run_id`, `base_url`, snake_case throughout)
 - Keep styling utilitarian; prioritize clarity and a11y over polish
 - Do not add secrets to git; `client_secret` is form-only, sent to API
-`)
