@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { getApiBaseUrl } from '../components/ApiClient';
 import { useFindings, useRun } from '../components/useApiHooks';
@@ -9,6 +10,7 @@ const MAX_POLL_MS = 5 * 60 * 1000;
 
 export function RunDetail() {
   const { id = '' } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
   const pollStartedAt = useRef(Date.now());
   const [, setTick] = useState(0);
   const { enabled: demoEnabled } = useDemoMode();
@@ -17,10 +19,15 @@ export function RunDetail() {
   const findingsQuery = useFindings(id);
 
   const run = runQuery.data;
-  const findings = findingsQuery.data ?? run?.findings ?? [];
+  const findings = run?.findings?.length
+    ? run.findings
+    : (findingsQuery.data ?? []);
   const isTerminal = !!run && TERMINAL_RUN_STATUSES.has(run.status);
 
   useEffect(() => {
+    pollStartedAt.current = Date.now();
+    setTick(0);
+
     if (isTerminal) return;
     const remaining = MAX_POLL_MS - (Date.now() - pollStartedAt.current);
     if (remaining <= 0) {
@@ -30,6 +37,12 @@ export function RunDetail() {
     const t = window.setTimeout(() => setTick((n) => n + 1), remaining + 50);
     return () => window.clearTimeout(t);
   }, [isTerminal, id]);
+
+  useEffect(() => {
+    if (isTerminal && id) {
+      void queryClient.invalidateQueries({ queryKey: ['findings', id] });
+    }
+  }, [isTerminal, id, queryClient]);
 
   const elapsed = Date.now() - pollStartedAt.current;
   const stillWaiting =
