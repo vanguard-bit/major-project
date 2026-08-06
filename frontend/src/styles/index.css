@@ -221,3 +221,54 @@ button.secondary {
 .muted {
   color: #6c757d;
 }
+
+.panel {
+  margin-bottom: 1.5rem;
+}
+
+.section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.section-header h2 {
+  margin: 0;
+}
+
+.inline-form {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  max-width: none;
+}
+
+.inline-form label {
+  flex: 1 1 240px;
+}
+
+.health-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  background: #e9ecef;
+  font-weight: 600;
+}
+
+.health-badge.ok {
+  background: #d1e7dd;
+  color: #0f5132;
+}
+
+.health-badge.error {
+  background: #fde8e8;
+  color: #842029;
+}
+
+.demo-audit-panel {
+  border: 1px dashed #842029;
+  padding: 1rem;
+  background: #fff5f5;
+}

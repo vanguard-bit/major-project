@@ -1,23 +1,21 @@
-import { Link, Route, Routes } from 'react-router-dom';
-
-function Home() {
-  return (
-    <main>
-      <h1>AIT Frontend</h1>
-      <p>Adversarial Integration Tester — minimal SPA scaffold.</p>
-    </main>
-  );
-}
+import { NavLink, Route, Routes } from 'react-router-dom';
+import { Dashboard } from './pages/Dashboard';
+import { RunDetail } from './pages/RunDetail';
+import { Targets } from './pages/Targets';
 
 export default function App() {
   return (
     <>
       <nav>
-        <Link to="/">Dashboard</Link>
-        <Link to="/targets">Targets</Link>
+        <NavLink to="/" end>
+          Dashboard
+        </NavLink>
+        <NavLink to="/targets">Targets</NavLink>
       </nav>
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/targets" element={<Targets />} />
+        <Route path="/runs/:id" element={<RunDetail />} />
       </Routes>
     </>
   );
