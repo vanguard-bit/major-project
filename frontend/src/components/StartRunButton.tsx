@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useStartRun } from './useApiHooks';
 import { useRecentRuns } from '../hooks/useRecentRuns';
 
@@ -12,7 +12,6 @@ export function StartRunButton({ targetName }: Props) {
   const { mutateAsync, isPending } = useStartRun();
   const { add } = useRecentRuns();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [toastRunId, setToastRunId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleConfirm() {
@@ -25,7 +24,7 @@ export function StartRunButton({ targetName }: Props) {
         targetName,
       });
       setConfirmOpen(false);
-      setToastRunId(data.run_id);
+      window.alert(`Run started: ${data.run_id}`);
       navigate(`/runs/${data.run_id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start run');
@@ -63,20 +62,6 @@ export function StartRunButton({ targetName }: Props) {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {toastRunId && (
-        <div className="banner success" role="status">
-          Run started: <code>{toastRunId}</code>{' '}
-          <Link to={`/runs/${toastRunId}`}>View run</Link>{' '}
-          <button
-            type="button"
-            className="secondary"
-            onClick={() => navigator.clipboard.writeText(toastRunId)}
-          >
-            Copy run id
-          </button>
         </div>
       )}
     </>
