@@ -6,6 +6,7 @@ import { StartRunButton } from '../components/StartRunButton';
 
 const mutateAsync = vi.fn();
 const add = vi.fn();
+const navigate = vi.fn();
 
 vi.mock('../components/useApiHooks', () => ({
   useStartRun: () => ({ mutateAsync, isPending: false }),
@@ -17,13 +18,15 @@ vi.mock('../hooks/useRecentRuns', () => ({
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
-  return { ...actual, useNavigate: () => vi.fn() };
+  return { ...actual, useNavigate: () => navigate };
 });
 
 describe('StartRunButton', () => {
   beforeEach(() => {
     mutateAsync.mockReset();
     add.mockReset();
+    navigate.mockReset();
+    vi.spyOn(window, 'alert').mockImplementation(() => {});
     mutateAsync.mockResolvedValue({
       run_id: 'run-123',
       status: 'completed',
@@ -47,5 +50,7 @@ describe('StartRunButton', () => {
     expect(add).toHaveBeenCalledWith(
       expect.objectContaining({ runId: 'run-123', targetName: 'demo-integration' }),
     );
+    expect(window.alert).toHaveBeenCalledWith('Run started: run-123');
+    expect(navigate).toHaveBeenCalledWith('/runs/run-123');
   });
 });
