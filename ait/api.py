@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Response
+from fastapi.middleware.cors import CORSMiddleware
 
 from ait.models import RunRecord, TargetConfig, TestRunConfig
 from ait.reporting import render_html_report
@@ -60,6 +61,14 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="Adversarial Integration Tester", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health")
