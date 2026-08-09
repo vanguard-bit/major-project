@@ -595,7 +595,10 @@ async def _execute_request(
             f"request failed after retries with status {response.status_code}"
         )
     if response.status_code >= 400:
-        raise RequestFailureError(f"request failed with status {response.status_code}")
+        raise RequestFailureError(
+            f"request failed with status {response.status_code} for "
+            f"{request.method} {request.path}"
+        )
 
     observation = LiveObservation(
         request_index=index,

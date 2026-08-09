@@ -1,6 +1,8 @@
 # Extended GitHub smoke probe — read-only GETs from GitHub REST API docs.
 # Policy allowlist is intentionally narrow (/user only) so undeclared calls
 # surface as hidden_endpoint findings. Caps at MAX_REQUESTS_PER_RUN (20).
+# Paths that require user:email / admin:public_key / app scopes are omitted so
+# typical gh auth / PAT tokens complete the run (emails, keys, installations).
 # Keeps configs/live/github_smoke.yaml unchanged for paper-selected artifacts.
 schema_version: "1.0.0"
 id: github-smoke-extended
@@ -17,10 +19,6 @@ requests:
   # https://docs.github.com/en/rest/users/users#get-the-authenticated-user
   - method: GET
     path: /user
-    phase: baseline
-  # https://docs.github.com/en/rest/users/emails#list-email-addresses-for-the-authenticated-user
-  - method: GET
-    path: /user/emails
     phase: baseline
   # https://docs.github.com/en/rest/repos/repos#list-repositories-for-the-authenticated-user
   - method: GET
@@ -53,12 +51,4 @@ requests:
   # https://docs.github.com/en/rest/rate-limit/rate-limit#get-rate-limit-status-for-the-authenticated-user
   - method: GET
     path: /rate_limit
-    phase: baseline
-  # https://docs.github.com/en/rest/users/keys#list-public-ssh-keys-for-the-authenticated-user
-  - method: GET
-    path: /user/keys?per_page=1
-    phase: baseline
-  # https://docs.github.com/en/rest/apps/installations#list-app-installations-accessible-to-the-user-access-token
-  - method: GET
-    path: /user/installations?per_page=1
     phase: baseline

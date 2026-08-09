@@ -13,7 +13,7 @@ const GITHUB_PLANS: LivePlanMeta[] = [
     label: 'smoke-extended (API-doc GETs)',
     path: 'configs/live/github_smoke_extended.yaml',
     description:
-      '12 read-only GitHub REST calls from the official docs; allowlist is /user only so extras become findings.',
+      '9 read-only GitHub REST calls from the official docs (PAT-safe); allowlist is /user only so extras become findings.',
   },
   {
     kind: 'smoke',
