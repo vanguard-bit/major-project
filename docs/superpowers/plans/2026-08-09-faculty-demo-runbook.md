@@ -2,33 +2,18 @@
 
 UI-first product demo on branch `feature/faculty-demo`.
 
-## Start services (4 terminals)
+## Start services
 
-From repo root:
-
-```bash
-cd /home/loki/projects/major_project
-set -a && source .env && set +a
-export AIT_DEMO_LIVE_PROBES=1
-```
+From `frontend/`:
 
 ```bash
-uv run uvicorn ait.mock_saas:app --port 8001 --reload
+cd /home/loki/projects/major_project/frontend
+npm run dev
 ```
 
-```bash
-uv run uvicorn ait.demo_integration:app --port 8002 --reload
-```
+Starts mock SaaS (:8001), demo integration (:8002), coordinator with `AIT_DEMO_LIVE_PROBES=1` (:8000), and Vite (:5173). Loads repo-root `.env` for live tokens.
 
-```bash
-uv run uvicorn ait.api:app --port 8000 --reload
-```
-
-```bash
-cd frontend && npm run dev
-```
-
-Open http://localhost:5173
+UI-only: `npm run dev:ui`
 
 ## Act 1 — SPA mock (~12–15 min)
 

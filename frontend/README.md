@@ -10,14 +10,32 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173).
+That single command starts:
+
+| Service | Port |
+|---------|------|
+| Mock SaaS | 8001 |
+| Demo integration | 8002 |
+| Coordinator API (`AIT_DEMO_LIVE_PROBES=1`) | 8000 |
+| Vite SPA | 5173 |
+
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173).
+
+Repo-root `.env` (gitignored) is sourced automatically for `AIT_GITHUB_TOKEN` / `AIT_GOOGLE_TOKEN` / `AIT_NOTION_TOKEN`.
+
+UI-only (backends already running):
+
+```bash
+npm run dev:ui
+```
 
 ## Scripts
 
 | Command | Description |
 |---------|-------------|
 | `npm install` | Install dependencies |
-| `npm run dev` | Start Vite dev server (port 5173) |
+| `npm run dev` | Full stack: mock + demo integration + API + Vite |
+| `npm run dev:ui` | Vite only (port 5173) |
 | `npm run build` | Typecheck (`tsc -b`) and production build to `dist/` |
 | `npm run test` | Run Vitest unit tests once |
 | `npm run test:watch` | Run Vitest in watch mode |
@@ -39,12 +57,14 @@ VITE_DEMO_MODE=false
 
 ## Local services and ports
 
-Start backend services from the repo root (venv activated, package installed):
+`npm run dev` starts these for you. Manual equivalent from the repo root:
 
 ```bash
-uvicorn ait.mock_saas:app --port 8001 --reload
-uvicorn ait.demo_integration:app --port 8002 --reload
-uvicorn ait.api:app --port 8000 --reload
+set -a && source .env && set +a
+export AIT_DEMO_LIVE_PROBES=1
+uv run uvicorn ait.mock_saas:app --port 8001 --reload
+uv run uvicorn ait.demo_integration:app --port 8002 --reload
+uv run uvicorn ait.api:app --port 8000 --reload
 ```
 
 | Service | Port |
