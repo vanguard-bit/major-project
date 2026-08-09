@@ -49,6 +49,11 @@ describe('Live evidence page', () => {
     expect(screen.getByTestId('live-risk-matrix')).toBeInTheDocument();
     expect(screen.getByTestId('live-result-detail')).toBeInTheDocument();
     expect(screen.queryByTestId('live-results-table')).not.toBeInTheDocument();
+    expect(screen.getByTestId('live-token-intents')).toBeInTheDocument();
+    expect(screen.getByText(/What each sandbox token is for/i)).toBeInTheDocument();
+    expect(screen.getByText(/AIT_GITHUB_TOKEN/)).toBeInTheDocument();
+    expect(screen.getByText(/AIT_GOOGLE_TOKEN/)).toBeInTheDocument();
+    expect(screen.getByText(/AIT_NOTION_TOKEN/)).toBeInTheDocument();
     expect(screen.getAllByText('GitHub').length).toBeGreaterThan(0);
     expect(screen.getAllByText('50').length).toBeGreaterThan(0);
   });

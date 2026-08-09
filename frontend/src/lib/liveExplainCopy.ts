@@ -33,6 +33,45 @@ export const LIVE_RESULTS = {
   } satisfies ExplainSections,
 };
 
+/** Intended use of each sandbox token — explain while pointing at the matrix. */
+export const LIVE_TOKEN_INTENTS = {
+  heading: 'What each sandbox token is for',
+  lead:
+    'Each token stands in for a credential a real integration would hold. We only run read-only requests. Risk is not “how bad is GitHub”; it is how far the observed calls went past the narrow allowlist in that plan.',
+  tokens: [
+    {
+      provider: 'GitHub',
+      env: 'AIT_GITHUB_TOKEN',
+      intended:
+        'A personal access token or GitHub App installation token issued to a third-party integration — meant only to identify the caller and sync the repositories or organizations that integration was approved for.',
+      canDo:
+        'With typical user scopes it can also read followers, stars, notifications, gists, and rate-limit metadata. Smoke and smoke-extended plans call some of those extras on purpose.',
+      scoreWhy:
+        'Plans allowlist only /user. Extra paths that succeed become hidden-endpoint findings and raise the risk score.',
+    },
+    {
+      provider: 'Google',
+      env: 'AIT_GOOGLE_TOKEN',
+      intended:
+        'A short-lived OAuth access token for a user or service that consented to a specific Google application programming interface scope — meant to read the profile (or other declared scopes) the consent screen showed.',
+      canDo:
+        'Depending on granted scopes it may also list Cloud Resource Manager projects and other Google application programming interfaces. Our smoke plan tries userinfo plus a projects list.',
+      scoreWhy:
+        'Plans allowlist only oauth2 userinfo. A successful projects call is undeclared reach and scores as a hidden endpoint.',
+    },
+    {
+      provider: 'Notion',
+      env: 'AIT_NOTION_TOKEN',
+      intended:
+        'An internal Notion integration secret shared with one workspace — meant to act as that bot user for the pages and databases the workspace admin connected.',
+      canDo:
+        'It can read the bot identity (/v1/users/me) and, when permitted, list other users in the workspace. Extended plans may touch additional read endpoints from the Notion documentation.',
+      scoreWhy:
+        'Plans allowlist only /v1/users/me. Listing users (or other paths) outside that claim becomes a finding and raises risk.',
+    },
+  ],
+} as const;
+
 export const LIVE_ADVANCED = {
   lead:
     'Prior-run dump and raw identifiers for rehearsal digressions — optional during the happy path.',

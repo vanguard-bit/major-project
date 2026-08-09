@@ -152,6 +152,51 @@ h4 {
   animation: fade-in 0.45s ease-out;
 }
 
+.token-intents {
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid color-mix(in srgb, var(--border, #c5d0dc) 80%, transparent);
+}
+
+.token-intents h3 {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-display, 'Source Serif 4', Georgia, serif);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--ink, #1a2332);
+}
+
+.token-intents-lead {
+  margin: 0 0 1.25rem;
+  max-width: 42rem;
+  color: var(--muted, #5a6a7a);
+  line-height: 1.55;
+}
+
+.token-intent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.token-intent-list > li h4 {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.token-env {
+  font-size: 0.8em;
+  font-weight: 500;
+  color: var(--muted, #5a6a7a);
+}
+
+.screenshot-mode .token-intents {
+  display: none;
+}
+
 .story-block {
   margin-bottom: 2rem;
   padding-bottom: 1.5rem;

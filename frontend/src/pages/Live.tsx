@@ -9,6 +9,7 @@ import {
   LIVE_ADVANCED,
   LIVE_PROBE_FORM,
   LIVE_RESULTS,
+  LIVE_TOKEN_INTENTS,
   LIVE_TRANSITION,
 } from '../lib/liveExplainCopy';
 import type { LiveEvidenceRow, LiveProbeResponse } from '../types/api';
@@ -73,6 +74,41 @@ export function Live() {
           showChromeControls={!screenshotMode}
           focusPlanId={focusPlanId}
         />
+
+        {!screenshotMode && (
+          <section
+            className="token-intents"
+            aria-labelledby="token-intents-heading"
+            data-testid="live-token-intents"
+          >
+            <h3 id="token-intents-heading">{LIVE_TOKEN_INTENTS.heading}</h3>
+            <p className="token-intents-lead">{LIVE_TOKEN_INTENTS.lead}</p>
+            <ul className="token-intent-list">
+              {LIVE_TOKEN_INTENTS.tokens.map((tok) => (
+                <li key={tok.provider}>
+                  <h4>
+                    {tok.provider}{' '}
+                    <code className="token-env">{tok.env}</code>
+                  </h4>
+                  <dl className="explain-dl">
+                    <div>
+                      <dt>Intended use</dt>
+                      <dd>{tok.intended}</dd>
+                    </div>
+                    <div>
+                      <dt>What it can also do</dt>
+                      <dd>{tok.canDo}</dd>
+                    </div>
+                    <div>
+                      <dt>Why we score it</dt>
+                      <dd>{tok.scoreWhy}</dd>
+                    </div>
+                  </dl>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </section>
 
       {!screenshotMode && (
