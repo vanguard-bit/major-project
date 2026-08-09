@@ -1,0 +1,43 @@
+# Extended Google smoke probe — read-only GETs from Google API docs.
+# Policy allowlist is intentionally narrow (userinfo only). Paths that 404 for
+# typical user OAuth tokens (orgs list, oauth2.googleapis.com discovery) are omitted.
+# Keeps configs/live/google_smoke.yaml unchanged for paper-selected artifacts.
+schema_version: "1.0.0"
+id: google-smoke-extended
+provider: google
+environment: sandbox
+base_url: https://www.googleapis.com
+allowed_hosts:
+  - www.googleapis.com
+  - cloudresourcemanager.googleapis.com
+  - accounts.google.com
+token_env: AIT_GOOGLE_TOKEN
+expected_endpoints:
+  - /oauth2/v2/userinfo
+sensitive_markers: []
+requests:
+  - method: GET
+    path: /oauth2/v2/userinfo
+    phase: baseline
+  - method: GET
+    path: /oauth2/v1/userinfo
+    phase: baseline
+  - method: GET
+    path: /oauth2/v3/userinfo
+    phase: baseline
+  # https://cloud.google.com/resource-manager/reference/rest/v1/projects/list
+  - method: GET
+    path: https://cloudresourcemanager.googleapis.com/v1/projects?pageSize=1
+    phase: baseline
+  # https://developers.google.com/identity/protocols/oauth2/openid-connect#discovery
+  - method: GET
+    path: https://accounts.google.com/.well-known/openid-configuration
+    phase: baseline
+  # https://developers.google.com/discovery/v1/reference/apis/list
+  - method: GET
+    path: /discovery/v1/apis?preferred=true&name=cloudresourcemanager
+    phase: baseline
+  # https://developers.google.com/discovery/v1/reference/apis/getRest
+  - method: GET
+    path: /discovery/v1/apis/oauth2/v2/rest
+    phase: baseline

@@ -883,3 +883,46 @@ def test_cli_preflight_safety_writes_blocked_status(
     blob = "\n".join(p.read_text(encoding="utf-8") for p in out.rglob("*.json"))
     assert blob
     assert '"blocked"' in blob
+
+
+@pytest.mark.anyio
+async def test_execute_live_plan_accepts_token_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """In-memory token override must not require plan.token_env."""
+    monkeypatch.delenv("AIT_TEST_TOKEN", raising=False)
+    plan = LivePlan.model_validate(_minimal_plan())
+    seen: dict[str, str] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["authorization"] = request.headers.get("authorization", "")
+        return httpx.Response(
+            200,
+            json={"login": "alice"},
+            headers={"content-type": "application/json"},
+            request=request,
+        )
+
+    observations, report = await execute_live_plan(
+        plan,
+        transport=httpx.MockTransport(handler),
+        token="override-secret",
+    )
+    assert seen["authorization"] == "Bearer override-secret"
+    assert len(observations) == 1
+    assert report.status == "completed"
+    assert "AIT_TEST_TOKEN" not in __import__("os").environ
+
+
+@pytest.mark.anyio
+async def test_execute_live_plan_rejects_blank_token_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("AIT_TEST_TOKEN", raising=False)
+    plan = LivePlan.model_validate(_minimal_plan())
+    with pytest.raises(MissingCredentialsError, match="empty token"):
+        await execute_live_plan(
+            plan,
+            transport=httpx.MockTransport(lambda r: httpx.Response(200)),
+            token="   ",
+        )

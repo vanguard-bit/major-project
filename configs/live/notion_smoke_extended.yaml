@@ -1,0 +1,25 @@
+# Notion smoke-extended — extra documented GETs beyond allowlisted /v1/users/me.
+schema_version: "1.0.0"
+id: notion-smoke-extended
+provider: notion
+environment: sandbox
+base_url: https://api.notion.com
+allowed_hosts:
+  - api.notion.com
+token_env: AIT_NOTION_TOKEN
+expected_endpoints:
+  - /v1/users/me
+sensitive_markers: []
+requests:
+  # https://developers.notion.com/reference/get-self
+  - method: GET
+    path: /v1/users/me
+    phase: baseline
+  # https://developers.notion.com/reference/get-users
+  - method: GET
+    path: /v1/users?page_size=1
+    phase: baseline
+  # https://developers.notion.com/reference/list-file-uploads
+  - method: GET
+    path: /v1/file_uploads
+    phase: baseline

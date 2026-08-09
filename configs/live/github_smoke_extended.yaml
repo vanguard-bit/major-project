@@ -1,0 +1,54 @@
+# Extended GitHub smoke probe — read-only GETs from GitHub REST API docs.
+# Policy allowlist is intentionally narrow (/user only) so undeclared calls
+# surface as hidden_endpoint findings. Caps at MAX_REQUESTS_PER_RUN (20).
+# Paths that require user:email / admin:public_key / app scopes are omitted so
+# typical gh auth / PAT tokens complete the run (emails, keys, installations).
+# Keeps configs/live/github_smoke.yaml unchanged for paper-selected artifacts.
+schema_version: "1.0.0"
+id: github-smoke-extended
+provider: github
+environment: sandbox
+base_url: https://api.github.com
+allowed_hosts:
+  - api.github.com
+token_env: AIT_GITHUB_TOKEN
+expected_endpoints:
+  - /user
+sensitive_markers: []
+requests:
+  # https://docs.github.com/en/rest/users/users#get-the-authenticated-user
+  - method: GET
+    path: /user
+    phase: baseline
+  # https://docs.github.com/en/rest/repos/repos#list-repositories-for-the-authenticated-user
+  - method: GET
+    path: /user/repos?per_page=1&sort=updated
+    phase: baseline
+  # https://docs.github.com/en/rest/orgs/orgs#list-organizations-for-the-authenticated-user
+  - method: GET
+    path: /user/orgs?per_page=1
+    phase: baseline
+  # https://docs.github.com/en/rest/users/followers#list-followers-of-the-authenticated-user
+  - method: GET
+    path: /user/followers?per_page=1
+    phase: baseline
+  # https://docs.github.com/en/rest/users/followers#list-the-people-the-authenticated-user-follows
+  - method: GET
+    path: /user/following?per_page=1
+    phase: baseline
+  # https://docs.github.com/en/rest/activity/starring#list-repositories-starred-by-the-authenticated-user
+  - method: GET
+    path: /user/starred?per_page=1
+    phase: baseline
+  # https://docs.github.com/en/rest/activity/notifications#list-notifications-for-the-authenticated-user
+  - method: GET
+    path: /notifications?per_page=1
+    phase: baseline
+  # https://docs.github.com/en/rest/gists/gists#list-gists-for-the-authenticated-user
+  - method: GET
+    path: /gists?per_page=1
+    phase: baseline
+  # https://docs.github.com/en/rest/rate-limit/rate-limit#get-rate-limit-status-for-the-authenticated-user
+  - method: GET
+    path: /rate_limit
+    phase: baseline
