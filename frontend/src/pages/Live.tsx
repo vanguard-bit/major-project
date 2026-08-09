@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { LiveProbeForm } from '../components/LiveProbeForm';
 import { useLiveEvidence } from '../components/useApiHooks';
 import type { LiveEvidenceRow } from '../types/api';
@@ -11,10 +12,15 @@ export function Live() {
 
   return (
     <main>
-      <h1>Live SaaS evidence</h1>
+      <p className="banner info" data-testid="live-transition-top">
+        Coming from the demo? Same analysis model — now against real SaaS. Provider and plan
+        YAML auto-fill; you only paste a sandbox token.
+      </p>
+
+      <h1>Live SaaS probes</h1>
       <p className="muted">
-        Prior completed live probes (policy allowlist vs observed traffic). Run a new probe
-        below with a pasted sandbox token.
+        Prior completed live probes (policy allowlist vs observed traffic), then run a new
+        probe below.
       </p>
 
       <section className="panel" aria-labelledby="evidence-heading">
@@ -65,19 +71,17 @@ export function Live() {
               <strong>Run ID:</strong> {selected.run_id}
             </p>
             <p>
-              <strong>Hidden:</strong>{' '}
-              {selected.hidden_endpoints.join(', ') || 'none'}
+              <strong>Hidden:</strong> {selected.hidden_endpoints.join(', ') || 'none'}
             </p>
             <p>
-              <strong>Reached:</strong>{' '}
-              {selected.reached_endpoints.join(', ') || 'none'}
+              <strong>Reached:</strong> {selected.reached_endpoints.join(', ') || 'none'}
             </p>
             {selected.findings.length > 0 && (
               <ol>
                 {selected.findings.map((f, i) => (
                   <li key={`${f.endpoint}-${i}`}>
-                    <strong>{f.severity?.toUpperCase?.() ?? f.severity}</strong> {f.title}{' '}
-                    — <code>{f.endpoint}</code>
+                    <strong>{f.severity?.toUpperCase?.() ?? f.severity}</strong> {f.title} —{' '}
+                    <code>{f.endpoint}</code>
                   </li>
                 ))}
               </ol>
@@ -87,6 +91,10 @@ export function Live() {
       </section>
 
       <LiveProbeForm />
+
+      <p className="muted">
+        Still need the mock CRM walkthrough? <Link to="/">Back to Dashboard (demo)</Link>
+      </p>
     </main>
   );
 }

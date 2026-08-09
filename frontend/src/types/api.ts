@@ -85,7 +85,7 @@ export type RecentRunEntry = {
   targetName?: string;
 };
 
-export type LiveProvider = 'github' | 'google';
+export type LiveProvider = 'github' | 'google' | 'notion';
 export type LivePlanKind = 'smoke' | 'readonly' | 'smoke-extended';
 
 export interface LiveEvidenceRow {

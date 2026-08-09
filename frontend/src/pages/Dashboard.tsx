@@ -29,6 +29,11 @@ export function Dashboard() {
 
   return (
     <main>
+      <p className="banner info" data-testid="demo-explainer">
+        Demo act: mock CRM + demo integration. AIT compares observed HTTP traffic to the
+        target allowlist and reports hidden endpoints, sensitive fields, and divergence.
+      </p>
+
       <h1>Dashboard</h1>
 
       <section className="panel" aria-labelledby="health-heading">
@@ -99,6 +104,11 @@ export function Dashboard() {
         <h2 id="demo-heading">Demo mode</h2>
         <DemoModeToggle />
       </section>
+
+      <p className="banner info" data-testid="demo-transition-bottom">
+        Finished the mock run? Next: same findings model on real GitHub / Google / Notion —{' '}
+        <Link to="/live">go to Live</Link> (YAML auto-fills; paste sandbox tokens only).
+      </p>
     </main>
   );
 }

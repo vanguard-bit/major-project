@@ -28,13 +28,14 @@ PLAN_FILES: dict[tuple[str, str], Path] = {
     ("google", "smoke"): Path("configs/live/google_smoke.yaml"),
     ("google", "readonly"): Path("configs/live/google_readonly.yaml"),
     ("google", "smoke-extended"): Path("configs/live/google_smoke_extended.yaml"),
+    ("notion", "readonly"): Path("configs/live/notion_readonly.yaml"),
 }
 
 router = APIRouter(prefix="/live", tags=["live-demo"])
 
 
 class LiveProbeRequest(BaseModel):
-    provider: Literal["github", "google"]
+    provider: Literal["github", "google", "notion"]
     plan: Literal["smoke", "readonly", "smoke-extended"]
     token: str = Field(min_length=1)
 
