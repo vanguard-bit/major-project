@@ -92,6 +92,11 @@ export function Live() {
 
       <LiveProbeForm />
 
+      <p className="banner info">
+        Ready for slides? Open the formatted board on{' '}
+        <Link to="/live/results">Live Results</Link> (screenshot mode available).
+      </p>
+
       <p className="muted">
         Still need the mock CRM walkthrough? <Link to="/">Back to Dashboard (demo)</Link>
       </p>
