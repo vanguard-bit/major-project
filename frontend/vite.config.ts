@@ -10,6 +10,7 @@ export default defineConfig({
       '/health': { target: 'http://localhost:8000', changeOrigin: true },
       '/targets': { target: 'http://localhost:8000', changeOrigin: true },
       '/runs': { target: 'http://localhost:8000', changeOrigin: true },
+      '/live': { target: 'http://localhost:8000', changeOrigin: true },
     },
   },
   test: {

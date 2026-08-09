@@ -1,7 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './ApiClient';
-import type { Finding, RunRecord, TargetConfig } from '../types/api';
+import type {
+  Finding,
+  LiveEvidenceRow,
+  LiveProbeRequest,
+  LiveProbeResponse,
+  RunRecord,
+  TargetConfig,
+} from '../types/api';
 import { TERMINAL_RUN_STATUSES } from '../types/api';
 
 const POLL_MS = 3000;
@@ -69,5 +76,27 @@ export function useFindings(runId: string) {
     queryFn: () => api.get(`/runs/${runId}/findings`).then((r) => r.data as Finding[]),
     enabled: !!runId,
     staleTime: 5000,
+  });
+}
+
+
+export function useLiveEvidence(enabled = true) {
+  return useQuery({
+    queryKey: ['live-evidence'],
+    queryFn: () => api.get('/live/evidence').then((r) => r.data as LiveEvidenceRow[]),
+    enabled,
+    staleTime: 30_000,
+    retry: 1,
+  });
+}
+
+export function useLiveProbe() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: LiveProbeRequest) =>
+      api
+        .post('/live/probes', payload, { timeout: 60_000 })
+        .then((r) => r.data as LiveProbeResponse),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['live-evidence'] }),
   });
 }

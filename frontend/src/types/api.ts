@@ -84,3 +84,35 @@ export type RecentRunEntry = {
   startedAt: string;
   targetName?: string;
 };
+
+export type LiveProvider = 'github' | 'google';
+export type LivePlanKind = 'smoke' | 'readonly' | 'smoke-extended';
+
+export interface LiveEvidenceRow {
+  platform: string;
+  scenario: string;
+  risk_score: number;
+  result: string;
+  run_id: string;
+  plan_id: string;
+  hidden_endpoints: string[];
+  reached_endpoints: string[];
+  findings: Finding[];
+}
+
+export interface LiveProbeRequest {
+  provider: LiveProvider;
+  plan: LivePlanKind;
+  token: string;
+}
+
+export interface LiveProbeResponse {
+  run_id: string;
+  provider: string;
+  plan_id: string;
+  status: string;
+  risk_score: number;
+  hidden_endpoints: string[];
+  reached_endpoints: string[];
+  findings: Finding[];
+}
