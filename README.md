@@ -1,7 +1,10 @@
 # Adversarial Integration Tester
 
-Adversarial Integration Tester is a CLI-first prototype for validating whether a SaaS
-integration accesses only the data and endpoints it is expected to use.
+Adversarial Integration Tester validates whether a SaaS integration accesses only
+the data and endpoints it is expected to use.
+
+**Faculty demo (install + Demo → Live walkthrough):** see
+[FACULTY_DEMO.md](FACULTY_DEMO.md).
 
 This repository contains:
 
@@ -9,6 +12,7 @@ This repository contains:
 - a mock SaaS service that exposes both expected and hidden endpoints
 - a demo integration that behaves differently under a mutated run
 - a CLI for launching runs and exporting reports
+- a Vite SPA for the faculty Demo / Live flow
 - an artifact boundary for reproducible research outputs under `results/`
 
 The primary product and implementation documentation lives in
@@ -18,17 +22,32 @@ The phase-by-phase research implementation plan lives in
 
 ## Quick Start
 
-Requires Python 3.12+ and [uv](https://github.com/astral-sh/uv).
+Requires Python 3.12+, [uv](https://github.com/astral-sh/uv), and Node.js 20+ for the SPA.
 
 ```bash
 make setup
+cd frontend && npm install && cd ..
+```
+
+Full stack (mock + demo integration + API + SPA):
+
+```bash
+cd frontend
+npm run dev
+```
+
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173). Put sandbox tokens in a
+gitignored repo-root `.env` (`AIT_GITHUB_TOKEN`, `AIT_GOOGLE_TOKEN`,
+`AIT_NOTION_TOKEN`). Live plan YAML under `configs/live/` is tracked in git.
+
+```bash
 make check
 ```
 
 `make setup` synchronizes runtime and development dependencies from `uv.lock`.
 `make check` runs Ruff and the pytest suite.
 
-### Demo services
+### CLI-only demo services
 
 ```bash
 uv run uvicorn ait.mock_saas:app --port 8001 --reload

@@ -80,6 +80,7 @@ export function LiveProbeForm({ onResult }: Props) {
   }, [setValue]);
 
   async function onSubmit(values: FormValues) {
+    probe.reset();
     try {
       const result = await probe.mutateAsync({
         provider: values.provider,
@@ -106,12 +107,10 @@ export function LiveProbeForm({ onResult }: Props) {
         : null;
 
   return (
-    <section className="panel" aria-labelledby="live-probe-heading">
-      <h2 id="live-probe-heading">Run live probe</h2>
-      <p className="muted">
-        Provider and plan are auto-filled from committed YAML under <code>configs/live/</code>.
-        You only need to paste a sandbox token.
-      </p>
+    <section className="panel" aria-labelledby="live-probe-form-heading">
+      <h3 id="live-probe-form-heading" className="sr-only">
+        Probe form
+      </h3>
       <form className="stack-form" onSubmit={handleSubmit(onSubmit)} autoComplete="off">
         <label>
           Provider
@@ -133,12 +132,10 @@ export function LiveProbeForm({ onResult }: Props) {
             ))}
           </select>
         </label>
-        <p className="field-help">
-          {planMeta?.description ?? FIELD_HELP.plan}
-        </p>
+        <p className="field-help">{planMeta?.description ?? FIELD_HELP.plan}</p>
 
         <label>
-          Plan YAML
+          Plan configuration file
           <input
             type="text"
             readOnly
@@ -166,34 +163,11 @@ export function LiveProbeForm({ onResult }: Props) {
       </form>
       {errorMessage && <p className="banner error">{errorMessage}</p>}
       {result && (
-        <div className="panel nested" data-testid="live-probe-result">
-          <h3>Probe result</h3>
-          <p>
-            <strong>Run ID:</strong> {result.run_id}
-          </p>
-          <p>
-            <strong>Risk:</strong> {result.risk_score}
-          </p>
-          <p>
-            <strong>Hidden endpoints:</strong>{' '}
-            {result.hidden_endpoints.length
-              ? result.hidden_endpoints.join(', ')
-              : 'none'}
-          </p>
-          <p>
-            <strong>Reached:</strong> {result.reached_endpoints.join(', ') || 'none'}
-          </p>
-          {result.findings.length > 0 && (
-            <ol>
-              {result.findings.map((f, i) => (
-                <li key={`${f.endpoint}-${i}`}>
-                  <strong>{f.severity.toUpperCase()}</strong> {f.title} —{' '}
-                  <code>{f.endpoint}</code>
-                </li>
-              ))}
-            </ol>
-          )}
-        </div>
+        <p className="banner success" data-testid="live-probe-result">
+          Latest probe <code>{result.plan_id}</code> · risk {result.risk_score} ·{' '}
+          <code>{result.run_id}</code> — detail selected in results below (replaces the
+          previous artifact for that plan).
+        </p>
       )}
     </section>
   );

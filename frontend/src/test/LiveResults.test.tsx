@@ -1,13 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
-import { LiveResults } from '../pages/LiveResults';
+import { ExplainProvider } from '../components/ExplainContext';
+import { LiveResultsBoard } from '../components/LiveResultsBoard';
 
 vi.mock('../components/useApiHooks', () => ({
   useLiveEvidence: () => ({
     isLoading: false,
     isError: false,
+    isFetching: false,
     data: [
       {
         platform: 'GitHub',
@@ -18,6 +21,22 @@ vi.mock('../components/useApiHooks', () => ({
         plan_id: 'github-smoke-extended',
         hidden_endpoints: ['/user/orgs', '/user/repos'],
         reached_endpoints: ['/user', '/user/orgs', '/user/repos'],
+        hidden_endpoint_responses: [
+          {
+            path: '/user/orgs',
+            status_code: 200,
+            response_bytes: 2,
+            response_fields: [],
+            content_type: 'application/json; charset=utf-8',
+          },
+          {
+            path: '/user/repos',
+            status_code: 200,
+            response_bytes: 5373,
+            response_fields: ['id', 'name', 'full_name', 'private', 'owner.login'],
+            content_type: 'application/json; charset=utf-8',
+          },
+        ],
         findings: [
           {
             severity: 'medium',
@@ -49,21 +68,41 @@ function wrap(ui: JSX.Element) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>{ui}</MemoryRouter>
+      <ExplainProvider>
+        <MemoryRouter>{ui}</MemoryRouter>
+      </ExplainProvider>
     </QueryClientProvider>,
   );
 }
 
-describe('LiveResults', () => {
-  it('renders fixed 3×3 summary table and detail cards', () => {
-    wrap(<LiveResults />);
-    expect(screen.getByTestId('live-results-table')).toBeInTheDocument();
-    expect(screen.getByText('Live SaaS probe results')).toBeInTheDocument();
-    expect(screen.getByText(/\/9 completed sandbox probes/)).toBeInTheDocument();
-    expect(screen.getByText(/2\/9 completed/)).toBeInTheDocument();
-    // Always 9 cards in the matrix
-    expect(screen.getAllByTestId('live-result-card').length).toBe(9);
+describe('LiveResultsBoard', () => {
+  it('shows matrix + detail normally without summary table', async () => {
+    const user = userEvent.setup();
+    wrap(
+      <LiveResultsBoard
+        screenshotMode={false}
+        showChromeControls
+        focusPlanId="github-smoke-extended"
+      />,
+    );
+    expect(screen.getByTestId('live-risk-matrix')).toBeInTheDocument();
+    expect(screen.queryByTestId('live-results-table')).not.toBeInTheDocument();
+    expect(screen.getByTestId('live-result-detail')).toBeInTheDocument();
+    expect(
+      screen.getByText(/means the probe stays inside a narrow allowlist/i),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Hidden endpoint access detected/)).toBeInTheDocument();
-    expect(screen.getAllByText('NOT RUN').length).toBeGreaterThan(0);
+    expect(screen.getByText(/JSON fields returned/i)).toBeInTheDocument();
+    expect(screen.getByText(/owner\.login/)).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('matrix-cell-google-smoke'));
+    const detail = screen.getByTestId('live-result-detail');
+    expect(detail.querySelector('#detail-heading')).toHaveTextContent('Google · smoke');
+  });
+
+  it('shows summary table in screenshot mode for slides', () => {
+    wrap(<LiveResultsBoard screenshotMode showChromeControls={false} />);
+    expect(screen.getByTestId('live-results-table')).toBeInTheDocument();
+    expect(screen.queryByTestId('live-result-detail')).not.toBeInTheDocument();
   });
 });

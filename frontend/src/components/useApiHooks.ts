@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './ApiClient';
+import { mergeProbeIntoEvidence } from '../lib/liveEvidence';
 import type {
   Finding,
   LiveEvidenceRow,
@@ -85,7 +86,7 @@ export function useLiveEvidence(enabled = true) {
     queryKey: ['live-evidence'],
     queryFn: () => api.get('/live/evidence').then((r) => r.data as LiveEvidenceRow[]),
     enabled,
-    staleTime: 30_000,
+    staleTime: 5_000,
     retry: 1,
   });
 }
@@ -97,6 +98,11 @@ export function useLiveProbe() {
       api
         .post('/live/probes', payload, { timeout: 60_000 })
         .then((r) => r.data as LiveProbeResponse),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['live-evidence'] }),
+    onSuccess: async (data) => {
+      qc.setQueryData<LiveEvidenceRow[]>(['live-evidence'], (old) =>
+        mergeProbeIntoEvidence(old, data),
+      );
+      await qc.invalidateQueries({ queryKey: ['live-evidence'] });
+    },
   });
 }

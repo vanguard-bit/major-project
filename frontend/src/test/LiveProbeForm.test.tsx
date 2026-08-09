@@ -21,6 +21,7 @@ vi.mock('../components/useApiHooks', () => ({
     isPending: false,
     data: undefined,
     error: null,
+    reset: vi.fn(),
   }),
 }));
 

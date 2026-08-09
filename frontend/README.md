@@ -2,6 +2,8 @@
 
 Vite + React + TypeScript SPA for the Adversarial Integration Tester coordinator.
 
+**Faculty demo walkthrough (Demo → Live):** see [../FACULTY_DEMO.md](../FACULTY_DEMO.md).
+
 ## Quick start
 
 ```bash

@@ -88,6 +88,14 @@ export type RecentRunEntry = {
 export type LiveProvider = 'github' | 'google' | 'notion';
 export type LivePlanKind = 'smoke' | 'readonly' | 'smoke-extended';
 
+export interface HiddenEndpointResponse {
+  path: string;
+  status_code: number;
+  response_bytes: number;
+  response_fields: string[];
+  content_type?: string | null;
+}
+
 export interface LiveEvidenceRow {
   platform: string;
   scenario: string;
@@ -98,6 +106,7 @@ export interface LiveEvidenceRow {
   hidden_endpoints: string[];
   reached_endpoints: string[];
   findings: Finding[];
+  hidden_endpoint_responses?: HiddenEndpointResponse[];
 }
 
 export interface LiveProbeRequest {
@@ -115,4 +124,5 @@ export interface LiveProbeResponse {
   hidden_endpoints: string[];
   reached_endpoints: string[];
   findings: Finding[];
+  hidden_endpoint_responses?: HiddenEndpointResponse[];
 }

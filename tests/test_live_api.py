@@ -90,6 +90,61 @@ def test_live_evidence_lists_summaries(
     assert rows[0]["scenario"] == "smoke"
     assert rows[0]["risk_score"] == 50.0
     assert "hidden" in rows[0]["result"]
+    assert rows[0]["hidden_endpoint_responses"] == []
+
+
+def test_live_evidence_includes_hidden_response_fields(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, client: TestClient
+) -> None:
+    monkeypatch.setenv("AIT_DEMO_LIVE_PROBES", "1")
+    derived = tmp_path / "results" / "derived"
+    raw_dir = tmp_path / "results" / "raw" / "live" / "github-smoke"
+    derived.mkdir(parents=True)
+    raw_dir.mkdir(parents=True)
+    doc = {
+        "configuration": {
+            "provider": "github",
+            "plan_id": "github-smoke",
+            "run_status": "completed",
+        },
+        "payload": {
+            "status": "completed",
+            "run_id": "run-1",
+            "risk_score": 50.0,
+            "hidden_endpoints": ["/user/orgs"],
+            "reached_endpoints": ["/user", "/user/orgs"],
+            "findings": [],
+        },
+    }
+    (derived / "live_github-smoke_run-1.json").write_text(json.dumps(doc), encoding="utf-8")
+    raw = {
+        "payload": {
+            "observations": [
+                {
+                    "normalized_path": "/user/orgs",
+                    "status_code": 200,
+                    "response_bytes": 12,
+                    "response_fields": ["login", "id", "url"],
+                    "selected_headers": {"content-type": "application/json"},
+                }
+            ]
+        }
+    }
+    (raw_dir / "run-1.json").write_text(json.dumps(raw), encoding="utf-8")
+
+    import ait.live_api as live_api
+
+    monkeypatch.setattr(live_api, "REPO_ROOT", tmp_path)
+
+    r = _local(client, "GET", "/live/evidence")
+    assert r.status_code == 200
+    rows = r.json()
+    assert len(rows) == 1
+    responses = rows[0]["hidden_endpoint_responses"]
+    assert len(responses) == 1
+    assert responses[0]["path"] == "/user/orgs"
+    assert responses[0]["status_code"] == 200
+    assert responses[0]["response_fields"] == ["login", "id", "url"]
 
 
 def test_live_probes_happy_path_monkeypatched(

@@ -5,9 +5,10 @@ import { useRecentRuns } from '../hooks/useRecentRuns';
 
 type Props = {
   targetName: string;
+  label?: string;
 };
 
-export function StartRunButton({ targetName }: Props) {
+export function StartRunButton({ targetName, label = 'Start run' }: Props) {
   const navigate = useNavigate();
   const { mutateAsync, isPending } = useStartRun();
   const { add } = useRecentRuns();
@@ -34,7 +35,7 @@ export function StartRunButton({ targetName }: Props) {
   return (
     <>
       <button type="button" disabled={isPending} onClick={() => setConfirmOpen(true)}>
-        Start run
+        {label}
       </button>
 
       {confirmOpen && (
