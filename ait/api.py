@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from ait.demo_credentials import demo_client_id, demo_client_secret, ensure_demo_credentials
+from ait.live_api import router as live_router
 from ait.models import RunRecord, TargetConfig, TestRunConfig
 from ait.reporting import render_html_report
 from ait.runner import run_assessment
@@ -70,6 +71,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(live_router)
 
 
 @app.get("/health")

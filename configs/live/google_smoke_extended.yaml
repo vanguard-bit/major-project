@@ -1,0 +1,53 @@
+# Extended Google smoke probe — read-only GETs from Google API docs.
+# Policy allowlist is intentionally narrow (userinfo only). Extra Cloud
+# Resource Manager / OAuth discovery calls surface as hidden endpoints when
+# reachable. Caps at MAX_REQUESTS_PER_RUN (20).
+# Keeps configs/live/google_smoke.yaml unchanged for paper-selected artifacts.
+schema_version: "1.0.0"
+id: google-smoke-extended
+provider: google
+environment: sandbox
+base_url: https://www.googleapis.com
+allowed_hosts:
+  - www.googleapis.com
+  - cloudresourcemanager.googleapis.com
+  - oauth2.googleapis.com
+token_env: AIT_GOOGLE_TOKEN
+expected_endpoints:
+  - /oauth2/v2/userinfo
+sensitive_markers: []
+requests:
+  # https://developers.google.com/identity/sign-in/web/backend-auth#calling-the-tokeninfo-endpoint
+  # (userinfo is the standard OAuth2 profile endpoint)
+  - method: GET
+    path: /oauth2/v2/userinfo
+    phase: baseline
+  # Alternate userinfo surface (same policy family; still undeclared vs allowlist)
+  - method: GET
+    path: /oauth2/v1/userinfo
+    phase: baseline
+  # https://cloud.google.com/resource-manager/reference/rest/v1/projects/list
+  - method: GET
+    path: https://cloudresourcemanager.googleapis.com/v1/projects?pageSize=1
+    phase: baseline
+  # https://cloud.google.com/resource-manager/reference/rest/v1/organizations/list
+  - method: GET
+    path: https://cloudresourcemanager.googleapis.com/v1/organizations?pageSize=1
+    phase: baseline
+  # https://developers.google.com/identity/protocols/oauth2/openid-connect#obtainuserinfo
+  - method: GET
+    path: /oauth2/v3/userinfo
+    phase: baseline
+  # OpenID Connect discovery
+  # https://developers.google.com/identity/protocols/oauth2/openid-connect#discovery
+  - method: GET
+    path: https://oauth2.googleapis.com/.well-known/openid-configuration
+    phase: baseline
+  # https://developers.google.com/discovery/v1/reference/apis/list
+  - method: GET
+    path: /discovery/v1/apis?preferred=true&name=cloudresourcemanager
+    phase: baseline
+  # https://developers.google.com/discovery/v1/reference/apis/getRest
+  - method: GET
+    path: /discovery/v1/apis/oauth2/v2/rest
+    phase: baseline
