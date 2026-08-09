@@ -21,7 +21,10 @@ def _local(client: TestClient, method: str, url: str, **kwargs):  # type: ignore
     return client.request(method, url, headers=headers, **kwargs)
 
 
-def test_live_probes_disabled_without_env(client: TestClient) -> None:
+def test_live_probes_disabled_without_env(
+    monkeypatch: pytest.MonkeyPatch, client: TestClient
+) -> None:
+    monkeypatch.delenv("AIT_DEMO_LIVE_PROBES", raising=False)
     r = _local(
         client,
         "POST",
@@ -31,7 +34,10 @@ def test_live_probes_disabled_without_env(client: TestClient) -> None:
     assert r.status_code == 404
 
 
-def test_live_evidence_disabled_without_env(client: TestClient) -> None:
+def test_live_evidence_disabled_without_env(
+    monkeypatch: pytest.MonkeyPatch, client: TestClient
+) -> None:
+    monkeypatch.delenv("AIT_DEMO_LIVE_PROBES", raising=False)
     r = _local(client, "GET", "/live/evidence")
     assert r.status_code == 404
 
