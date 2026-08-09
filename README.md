@@ -31,16 +31,15 @@ cd frontend && npm install && cd ..
 
 (`make setup` is optional and does the same as `uv sync --dev`. Make is not required.)
 
-Full stack (mock + demo integration + API + SPA) — **macOS / Linux / Windows WSL2**:
+Full stack:
 
-```bash
-cd frontend
-npm run dev
-```
+- **macOS / Linux:** `cd frontend && npm run dev`
+- **Windows:** four separate PowerShell commands — see [FACULTY_DEMO.md](FACULTY_DEMO.md#windows-four-terminals--run-one-command-each)
 
 Open [http://127.0.0.1:5173](http://127.0.0.1:5173). Put sandbox tokens in a
 gitignored repo-root `.env` (`AIT_GITHUB_TOKEN`, `AIT_GOOGLE_TOKEN`,
-`AIT_NOTION_TOKEN`). Live plan YAML under `configs/live/` is tracked in git.
+`AIT_NOTION_TOKEN`), or paste them in the Live UI. Live plan YAML under
+`configs/live/` is tracked in git.
 
 ```bash
 uv run ruff check ait tests && uv run pytest

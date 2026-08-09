@@ -59,14 +59,27 @@ VITE_DEMO_MODE=false
 
 ## Local services and ports
 
-`npm run dev` starts these for you. Manual equivalent from the repo root:
+`npm run dev` (macOS/Linux) starts these for you. **Windows:** run the four commands separately — see [FACULTY_DEMO.md](../FACULTY_DEMO.md#windows-four-terminals--run-one-command-each).
+
+Manual equivalent from the repo root (four terminals):
 
 ```bash
-set -a && source .env && set +a
-export AIT_DEMO_LIVE_PROBES=1
-uv run uvicorn ait.mock_saas:app --port 8001 --reload
-uv run uvicorn ait.demo_integration:app --port 8002 --reload
-uv run uvicorn ait.api:app --port 8000 --reload
+# 1
+uv run uvicorn ait.mock_saas:app --host 127.0.0.1 --port 8001 --reload
+# 2
+uv run uvicorn ait.demo_integration:app --host 127.0.0.1 --port 8002 --reload
+# 3
+AIT_DEMO_LIVE_PROBES=1 uv run uvicorn ait.api:app --host 127.0.0.1 --port 8000 --reload
+# 4 (from frontend/)
+npm run dev:ui
+```
+
+PowerShell (set once per window, then one command):
+
+```powershell
+$env:AIT_DEMO_LIVE_PROBES = "1"
+uv run uvicorn ait.mock_saas:app --host 127.0.0.1 --port 8001 --reload
+# …same pattern for ports 8002, 8000; then: cd frontend; npm run dev:ui
 ```
 
 | Service | Port |
