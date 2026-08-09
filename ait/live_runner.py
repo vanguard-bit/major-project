@@ -712,6 +712,7 @@ async def execute_live_plan(
     transport: httpx.AsyncBaseTransport | httpx.BaseTransport | None = None,
     output_root: Path | None = None,
     command: list[str] | None = None,
+    token: str | None = None,
 ) -> tuple[list[LiveObservation], RunReport]:
     # --store-bodies remains disabled: only permitted for approved synthetic sandbox data,
     # which is not yet gated by a separate synthetic-mode flag in this runner.
@@ -728,14 +729,20 @@ async def execute_live_plan(
     cmd = command or ["python", "-m", "ait.live_runner"]
     run_id = _new_run_id(plan.id)
     secrets: list[str] = []
-    token: str | None = None
-    try:
-        token = _read_token(plan)
-        secrets = [token]
-    except MissingCredentialsError:
-        # Preflight path/policy checks can still run and record blocked status;
-        # credential errors remain separate and write nothing.
-        token = None
+    resolved: str | None = None
+    if token is not None:
+        if not token.strip():
+            raise MissingCredentialsError("empty token override")
+        resolved = token
+        secrets = [resolved]
+    else:
+        try:
+            resolved = _read_token(plan)
+            secrets = [resolved]
+        except MissingCredentialsError:
+            # Preflight path/policy checks can still run and record blocked status;
+            # credential errors remain separate and write nothing.
+            resolved = None
 
     def _blocked(reason: str, *, observations: list[LiveObservation] | None = None) -> None:
         if output_root is None:
@@ -760,12 +767,12 @@ async def execute_live_plan(
         _blocked(str(exc))
         raise SafetyRejectionError(scrub_secrets(str(exc), secrets)) from None
 
-    if token is None:
+    if resolved is None:
         raise MissingCredentialsError(
             f"missing credentials: environment variable {plan.token_env} is not set"
         )
 
-    headers = _provider_headers(plan, token)
+    headers = _provider_headers(plan, resolved)
 
     observations: list[LiveObservation] = []
     exchanges: list[CapturedExchange] = []
