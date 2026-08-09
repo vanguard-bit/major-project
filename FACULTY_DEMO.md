@@ -3,20 +3,24 @@
 Goal: same flow as today. **Demo → results → Live → paste key → results.**  
 Tokens stay in a local `.env` (never commit). Plan YAML under `configs/live/` is in git.
 
-## One-time setup (any machine)
+## One-time setup
 
-Needs **Python 3.12+**, [**uv**](https://github.com/astral-sh/uv), and **Node.js 20+**.
+Needs **Python 3.12+**, [**uv**](https://github.com/astral-sh/uv), **Node.js 20+**, and a **Unix shell** (macOS, Linux, or **Windows WSL2**).
+
+`Make` is **not** required. (`make setup` is only an optional alias for `uv sync --dev`.)
+
+**Windows:** use [WSL2](https://learn.microsoft.com/windows/wsl/install) (Ubuntu). Do not rely on plain PowerShell/CMD — `npm run dev` starts backends via a bash script.
 
 ```bash
 git clone <this-repo-url>
 cd major_project
 git checkout main
 
-make setup
+uv sync --dev
 cd frontend && npm install && cd ..
 ```
 
-Put the shared `.env` at the **repo root** (same folder as `Makefile`). Example shape — use the real values you receive separately:
+Put the shared `.env` at the **repo root** (same folder as `README.md`). Example shape — use the real values you receive separately:
 
 ```bash
 # major_project/.env  (gitignored — do not commit)

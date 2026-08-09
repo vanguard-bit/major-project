@@ -25,11 +25,13 @@ The phase-by-phase research implementation plan lives in
 Requires Python 3.12+, [uv](https://github.com/astral-sh/uv), and Node.js 20+ for the SPA.
 
 ```bash
-make setup
+uv sync --dev
 cd frontend && npm install && cd ..
 ```
 
-Full stack (mock + demo integration + API + SPA):
+(`make setup` is optional and does the same as `uv sync --dev`. Make is not required.)
+
+Full stack (mock + demo integration + API + SPA) — **macOS / Linux / Windows WSL2**:
 
 ```bash
 cd frontend
@@ -41,11 +43,10 @@ gitignored repo-root `.env` (`AIT_GITHUB_TOKEN`, `AIT_GOOGLE_TOKEN`,
 `AIT_NOTION_TOKEN`). Live plan YAML under `configs/live/` is tracked in git.
 
 ```bash
-make check
+uv run ruff check ait tests && uv run pytest
 ```
 
-`make setup` synchronizes runtime and development dependencies from `uv.lock`.
-`make check` runs Ruff and the pytest suite.
+Or, if Make is installed: `make check`.
 
 ### CLI-only demo services
 
