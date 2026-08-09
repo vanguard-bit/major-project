@@ -28,7 +28,9 @@ PLAN_FILES: dict[tuple[str, str], Path] = {
     ("google", "smoke"): Path("configs/live/google_smoke.yaml"),
     ("google", "readonly"): Path("configs/live/google_readonly.yaml"),
     ("google", "smoke-extended"): Path("configs/live/google_smoke_extended.yaml"),
+    ("notion", "smoke"): Path("configs/live/notion_smoke.yaml"),
     ("notion", "readonly"): Path("configs/live/notion_readonly.yaml"),
+    ("notion", "smoke-extended"): Path("configs/live/notion_smoke_extended.yaml"),
 }
 
 router = APIRouter(prefix="/live", tags=["live-demo"])

@@ -53,6 +53,19 @@ const GOOGLE_PLANS: LivePlanMeta[] = [
 
 const NOTION_PLANS: LivePlanMeta[] = [
   {
+    kind: 'smoke-extended',
+    label: 'smoke-extended (API-doc GETs)',
+    path: 'configs/live/notion_smoke_extended.yaml',
+    description:
+      'users/me + list users + file uploads; allowlist is /v1/users/me only so extras become findings.',
+  },
+  {
+    kind: 'smoke',
+    label: 'smoke',
+    path: 'configs/live/notion_smoke.yaml',
+    description: 'users/me plus list users (short finding demo).',
+  },
+  {
     kind: 'readonly',
     label: 'readonly',
     path: 'configs/live/notion_readonly.yaml',
@@ -69,8 +82,21 @@ const BY_PROVIDER: Record<LiveProvider, LivePlanMeta[]> = {
 export const DEFAULT_PLAN: Record<LiveProvider, LivePlanKind> = {
   github: 'smoke-extended',
   google: 'smoke-extended',
-  notion: 'readonly',
+  notion: 'smoke-extended',
 };
+
+/** Fixed 3×3 matrix for Results board (provider × plan). */
+export const RESULTS_MATRIX: { provider: LiveProvider; plan: LivePlanKind }[] = [
+  { provider: 'github', plan: 'readonly' },
+  { provider: 'github', plan: 'smoke' },
+  { provider: 'github', plan: 'smoke-extended' },
+  { provider: 'google', plan: 'readonly' },
+  { provider: 'google', plan: 'smoke' },
+  { provider: 'google', plan: 'smoke-extended' },
+  { provider: 'notion', plan: 'readonly' },
+  { provider: 'notion', plan: 'smoke' },
+  { provider: 'notion', plan: 'smoke-extended' },
+];
 
 export const FIELD_HELP = {
   provider:

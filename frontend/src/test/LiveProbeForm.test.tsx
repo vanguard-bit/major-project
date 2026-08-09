@@ -42,7 +42,7 @@ describe('LiveProbeForm', () => {
     const input = screen.getByTestId('live-token-input') as HTMLInputElement;
     expect((screen.getByTestId('live-plan-file') as HTMLInputElement).value).toContain('github_smoke_extended.yaml');
     await user.selectOptions(screen.getByTestId('live-provider'), 'notion');
-    expect((screen.getByTestId('live-plan-file') as HTMLInputElement).value).toContain('notion_readonly.yaml');
+    expect((screen.getByTestId('live-plan-file') as HTMLInputElement).value).toContain('notion_smoke_extended.yaml');
     await user.selectOptions(screen.getByTestId('live-provider'), 'github');
     await user.type(input, 'super-secret-token');
     await user.click(screen.getByRole('button', { name: /run probe/i }));

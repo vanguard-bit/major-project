@@ -55,12 +55,15 @@ function wrap(ui: JSX.Element) {
 }
 
 describe('LiveResults', () => {
-  it('renders summary table and detail cards for slides', () => {
+  it('renders fixed 3×3 summary table and detail cards', () => {
     wrap(<LiveResults />);
     expect(screen.getByTestId('live-results-table')).toBeInTheDocument();
     expect(screen.getByText('Live SaaS probe results')).toBeInTheDocument();
-    expect(screen.getByText('100')).toBeInTheDocument();
-    expect(screen.getAllByTestId('live-result-card').length).toBe(2);
+    expect(screen.getByText(/\/9 completed sandbox probes/)).toBeInTheDocument();
+    expect(screen.getByText(/2\/9 completed/)).toBeInTheDocument();
+    // Always 9 cards in the matrix
+    expect(screen.getAllByTestId('live-result-card').length).toBe(9);
     expect(screen.getByText(/Hidden endpoint access detected/)).toBeInTheDocument();
+    expect(screen.getAllByText('NOT RUN').length).toBeGreaterThan(0);
   });
 });

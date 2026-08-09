@@ -1,0 +1,21 @@
+# Notion smoke — allowlist /v1/users/me; also list users (API docs).
+schema_version: "1.0.0"
+id: notion-smoke
+provider: notion
+environment: sandbox
+base_url: https://api.notion.com
+allowed_hosts:
+  - api.notion.com
+token_env: AIT_NOTION_TOKEN
+expected_endpoints:
+  - /v1/users/me
+sensitive_markers: []
+requests:
+  # https://developers.notion.com/reference/get-self
+  - method: GET
+    path: /v1/users/me
+    phase: baseline
+  # https://developers.notion.com/reference/get-users
+  - method: GET
+    path: /v1/users?page_size=1
+    phase: baseline
