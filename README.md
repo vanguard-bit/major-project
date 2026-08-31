@@ -23,23 +23,34 @@ The phase-by-phase research implementation plan lives in
 ## Quick Start
 
 Requires Python 3.12+, [uv](https://github.com/astral-sh/uv), and Node.js 20+ for the SPA.
+Make is **not** required (`make setup` is only an optional alias for `uv sync --dev`).
+
+### Clone → install → run the faculty demo
 
 ```bash
+git clone <this-repo-url>
+cd major_project
+git checkout main
+
 uv sync --dev
 cd frontend && npm install && cd ..
 ```
 
-(`make setup` is optional and does the same as `uv sync --dev`. Make is not required.)
+Optional: put sandbox tokens in a gitignored repo-root `.env`
+(`AIT_GITHUB_TOKEN`, `AIT_GOOGLE_TOKEN`, `AIT_NOTION_TOKEN`), or paste them in the
+Live UI later. Live plan YAML under `configs/live/` is tracked in git.
 
-Full stack:
+Full stack (mock SaaS :8001, demo integration :8002, API :8000 with
+`AIT_DEMO_LIVE_PROBES=1`, Vite :5173):
 
 - **macOS / Linux:** `cd frontend && npm run dev`
-- **Windows:** four separate PowerShell commands — see [FACULTY_DEMO.md](FACULTY_DEMO.md#windows-four-terminals--run-one-command-each)
+  (`scripts/npm-dev-stack.sh` sources repo-root `.env` if present)
+- **Windows:** four separate PowerShell windows — see
+  [FACULTY_DEMO.md](FACULTY_DEMO.md#windows-four-terminals--run-one-command-each)
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173). Put sandbox tokens in a
-gitignored repo-root `.env` (`AIT_GITHUB_TOKEN`, `AIT_GOOGLE_TOKEN`,
-`AIT_NOTION_TOKEN`), or paste them in the Live UI. Live plan YAML under
-`configs/live/` is tracked in git.
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173), then:
+**Demo → Start demo assessment → results → Live → pick a cell → paste key → results**.
+Full walkthrough: [FACULTY_DEMO.md](FACULTY_DEMO.md).
 
 ```bash
 uv run ruff check ait tests && uv run pytest
@@ -49,10 +60,13 @@ Or, if Make is installed: `make check`.
 
 ### CLI-only demo services
 
+Does not enable Live paste-token probes (`AIT_DEMO_LIVE_PROBES`). For the SPA
+Live flow, use `npm run dev` (or the Windows four-terminal setup) instead.
+
 ```bash
-uv run uvicorn ait.mock_saas:app --port 8001 --reload
-uv run uvicorn ait.demo_integration:app --port 8002 --reload
-uv run uvicorn ait.api:app --port 8000 --reload
+uv run uvicorn ait.mock_saas:app --host 127.0.0.1 --port 8001 --reload
+uv run uvicorn ait.demo_integration:app --host 127.0.0.1 --port 8002 --reload
+uv run uvicorn ait.api:app --host 127.0.0.1 --port 8000 --reload
 uv run ait run-start demo-integration
 ```
 
@@ -86,14 +100,20 @@ make validate-artifacts
 ## Live SaaS probes (sandbox only)
 
 The live runner (`python -m ait.live_runner`) issues **instrumented, allowlisted**
-read-only probes against GitHub or Notion. It is not a transparent integration monitor.
+read-only probes against GitHub, Google, or Notion. It is not a transparent
+integration monitor.
+
+The faculty SPA Live page can also run these plans with a pasted token when the
+coordinator is started with `AIT_DEMO_LIVE_PROBES=1` (as `npm run dev` does).
+CLI runs still take tokens **only** from the environment — never from argv.
 
 **Safety defaults**
 
 - Methods are `GET`/`HEAD` only unless both `--allow-mutation` and `environment: sandbox`.
 - Redirects are rejected (not followed). Hosts must exactly match the plan allowlist.
 - At most 20 requests/run, 1 MiB response, 10s timeout; retries only for 429/502/503/504.
-- Tokens come **only** from environment variables (`AIT_GITHUB_TOKEN`, `AIT_NOTION_TOKEN`).
+- CLI tokens come **only** from environment variables
+  (`AIT_GITHUB_TOKEN`, `AIT_GOOGLE_TOKEN`, `AIT_NOTION_TOKEN`).
   Never pass tokens on the CLI. Missing credentials exit with code `2` and write no artifact.
 - Default artifacts store field **names**, digests, and allowlisted headers — not response bodies
   or `Authorization` / `Set-Cookie` headers.
@@ -103,10 +123,12 @@ read-only probes against GitHub or Notion. It is not a transparent integration m
 **Setup**
 
 1. Create least-privilege sandbox credentials (dedicated account/app; no production tokens).
-2. Export the token in your shell (or a gitignored `.env` loaded by your shell only):
+2. Put tokens in a gitignored repo-root `.env` (auto-sourced by `npm run dev`) or export them
+   in your shell:
 
 ```bash
 export AIT_GITHUB_TOKEN=...   # never commit
+export AIT_GOOGLE_TOKEN=...   # never commit
 export AIT_NOTION_TOKEN=...   # never commit
 ```
 
@@ -114,6 +136,7 @@ export AIT_NOTION_TOKEN=...   # never commit
 
 ```bash
 uv run python -m ait.live_runner run --plan configs/live/github_smoke.yaml --dry-run
+uv run python -m ait.live_runner run --plan configs/live/google_readonly.yaml --dry-run
 uv run python -m ait.live_runner run --plan configs/live/notion_readonly.yaml --dry-run
 ```
 
