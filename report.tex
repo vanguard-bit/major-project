@@ -157,6 +157,8 @@
 \onehalfspacing
 
 % ══════════════════════════════════════════════════════════════════════════════
+\setlength{\emergencystretch}{3em}
+
 \begin{document}
 
 % ── Title Page ─────────────────────────────────────────────────────────────────
@@ -170,7 +172,7 @@
     {\Large for SaaS APIs via Differential Fuzzing and Taint-Seeded Data Tracking\par}
     \vspace{1.5cm}
 
-    \begin{tabular}{ll}
+    \begin{tabularx}{\textwidth}{@{}lX@{}}
         \textbf{Product Name}      & Adversarial Integration Tester (AIT)                           \\[4pt]
         \textbf{Document Status}   & Final / V1.0                                                    \\[4pt]
         \textbf{Project Code}      & BIC685 --- Major Project Phase 1                                \\[4pt]
@@ -182,7 +184,7 @@
         \textbf{Title Note}        & Registered title pending guide approval; see Section~\ref{sec:terms} \\[4pt]
         \textbf{Threat Coverage}   & C1: Over-scope \textbar\ C2: Field Harvesting \textbar\ C3: State-Dependent Evasion \\[4pt]
         \textbf{Date}              & 2025                                                            \\
-    \end{tabular}
+    \end{tabularx}
 
     \vfill
     \textit{Submitted to:}\\[4pt]
@@ -745,7 +747,7 @@ Figure~\ref{fig:dm-map} consolidates the mapping from threat classes to detector
     \setlength{\tabcolsep}{6pt}
     \begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.35cm}
                          >{\raggedright\arraybackslash}p{2.65cm}
-                         >{\raggedright\arraybackslash}p{3.05cm}
+                         >{\raggedright\arraybackslash}p{4.1cm}
                          >{\raggedright\arraybackslash}p{1.85cm}@{}}
         \toprule
         \textbf{Threat} & \textbf{Detector} & \textbf{Finding} & \textbf{Severity} \\
@@ -800,7 +802,7 @@ Figure~\ref{fig:risk-bands} shows the score bands used for triage.
 
 \begin{figure}[H]
     \centering
-    \begin{tikzpicture}[x=0.078\textwidth, y=0.7cm, font=\small]
+    \begin{tikzpicture}[x=0.072\textwidth, y=0.7cm, font=\small]
         \draw[thick] (0,0) -- (13,0);
         \foreach \x/\lbl in {0/0, 2.6/25, 5.2/50, 7.8/75, 13/100} {
             \draw (\x,0) -- (\x,-0.12) node[below, font=\scriptsize] {\lbl};
@@ -933,6 +935,7 @@ to replace the in-memory state store:
     \centering
     \caption{Optional Production Dependencies}
     \label{tab:prod-deps}
+    \resizebox{\textwidth}{!}{%
     \begin{tabular}{lll}
         \toprule
         \textbf{Component}     & \textbf{Technology}      & \textbf{Purpose}                         \\
@@ -942,7 +945,7 @@ to replace the in-memory state store:
         CI/CD integration      & GitHub Actions / Jenkins    & Automated policy regression gate       \\[4pt]
         SIEM connector         & Splunk, Elastic, or custom  & Downstream ingestion of JSON findings  \\
         \bottomrule
-    \end{tabular}
+    \end{tabular}}
 \end{table}
 
 \subsection{Installation and Setup}
@@ -1244,7 +1247,7 @@ any integration, and not a vulnerability in the provider.
     integration behaviour)}
     \label{tab:live-results}
     \footnotesize
-    \input{results/generated/live_results.tex}
+    \resizebox{\textwidth}{!}{\input{results/generated/live_results.tex}}
 \end{table}
 
 The ``readonly'' plans stayed within their declared single-path policy. The ``smoke'' plans
@@ -1304,7 +1307,7 @@ regenerated from the hashed replay artifact.
     \caption{Log-Based Replay: Expected vs.\ Observed Categories}
     \label{tab:replay}
     \footnotesize
-    \input{results/generated/replay_results.tex}
+    \resizebox{\textwidth}{!}{\input{results/generated/replay_results.tex}}
 \end{table}
 
 Each replay provides plausibility evidence, not empirical precision/recall on real
@@ -1350,7 +1353,7 @@ latency.
     \caption{Selected Artifact Provenance}
     \label{tab:provenance}
     \footnotesize
-    \input{results/generated/artifact_provenance.tex}
+    \resizebox{\textwidth}{!}{\input{results/generated/artifact_provenance.tex}}
 \end{table}
 
 % ══════════════════════════════════════════════════════════════════════════════
@@ -1364,16 +1367,16 @@ the security guarantees of the framework. Four evasion scenarios are identified
 \begin{figure}[H]
     \centering
     \begin{tikzpicture}[font=\footnotesize]
-        \node[fnbox, text width=4.85cm] (fn1) at (-5.0, 0) {%
+        \node[fnbox, text width=4.85cm] (fn1) at (-4.8, 0) {%
             \textbf{FN1} Out-of-band exfiltration\\[2pt]
             Webhook / egress not on instrumented API surface};
-        \node[fnbox, text width=4.85cm] (fn2) at (5.0, 0) {%
+        \node[fnbox, text width=4.85cm] (fn2) at (4.8, 0) {%
             \textbf{FN2} Shared token misuse\\[2pt]
             Calls attributed to wrong client / token identity};
-        \node[fnbox, text width=4.85cm] (fn3) at (-5.0, -3.15) {%
+        \node[fnbox, text width=4.85cm] (fn3) at (-4.8, -3.15) {%
             \textbf{FN3} Delayed / triggered activation\\[2pt]
             Violation outside two-phase session window};
-        \node[fnbox, text width=4.85cm] (fn4) at (5.0, -3.15) {%
+        \node[fnbox, text width=4.85cm] (fn4) at (4.8, -3.15) {%
             \textbf{FN4} Field-name aliasing\\[2pt]
             Sensitive value under unlisted response field name};
         \node[draw=black!50, dashed, rounded corners=6pt, inner sep=14pt,
@@ -1513,7 +1516,7 @@ developed integration; tooling and protocols for both are included.
 \texttt{uv sync --dev} followed by
 \texttt{uv run python -m ait.experiments.run\_offline --output-root results} regenerates every
 offline artifact, including the baseline comparison (raw per-case predictions in
-\texttt{results/raw/baseline-comparison/dev/predictions.json}). The tables are rendered with
+\path{results/raw/baseline-comparison/dev/predictions.json}). The tables are rendered with
 \texttt{python -m ait.paper.render\_tables}. Artifacts embed timestamps, so byte hashes differ
 between runs. We verified that two independent runs (Windows, Python~3.12.10) produce payloads
 identical to each other and to the committed raw artifacts, apart from timing values and OS path

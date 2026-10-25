@@ -444,6 +444,7 @@ downstream SIEM ingestion.
 
 \begin{figure}[htbp]
   \centering
+  \resizebox{\columnwidth}{!}{%
   \begin{tikzpicture}[node distance=0.35cm and 0.55cm, font=\small]
     \node[svcbox, text width=2.4cm] (iut) {Integration\\Under Test};
     \node[svcbox, right=0.7cm of iut, text width=2.2cm] (api) {SaaS API\\(mock or live)};
@@ -454,7 +455,7 @@ downstream SIEM ingestion.
     \draw[arrow] (api) -- node[above,font=\scriptsize]{record} (log);
     \draw[arrow] (log) -- node[right,font=\scriptsize]{exchanges} (ae);
     \draw[arrow] (ae) -- node[below,font=\scriptsize]{report} (rep);
-  \end{tikzpicture}
+  \end{tikzpicture}}
   \caption{End-to-end detection pipeline: observed integration traffic is
   normalized into \texttt{CapturedExchange} records, analyzed against
   policy, and emitted as structured findings. The same analysis is applied
@@ -634,6 +635,7 @@ or sensitive markers appear relative to the checked-in policy YAML.
 
 \begin{figure}[htbp]
   \centering
+  \resizebox{\columnwidth}{!}{%
   \begin{tikzpicture}[node distance=0.35cm and 0.5cm, font=\footnotesize]
     \node[svcbox, text width=1.65cm] (dev) {Developer\\commit};
     \node[svcbox, right=0.55cm of dev, text width=1.55cm] (cicd) {CI/CD\\job};
@@ -644,7 +646,7 @@ or sensitive markers appear relative to the checked-in policy YAML.
     \draw[arrow] (cicd) -- (ait);
     \draw[arrow] (ait) -- (pol);
     \draw[arrow] (pol) -- (gate);
-  \end{tikzpicture}
+  \end{tikzpicture}}
   \caption{Deployment sketch: integration changes are gated on AIT policy
   reconciliation before release.}
   \label{fig:cicd}
@@ -745,7 +747,7 @@ violation. Values are regenerated from
   \centering
   \renewcommand{\arraystretch}{1.25}
   \footnotesize
-  \input{results/generated/mock_detection_results.tex}
+  \resizebox{\columnwidth}{!}{\input{results/generated/mock_detection_results.tex}}
 \end{table}
 
 \noindent\textit{Takeaway:} Under injected labels, AIT's implementation
@@ -811,7 +813,7 @@ not generalization to arbitrary production tenants.
 % CLAIM:baseline-comparison
 \textbf{Protocol.} Before the baseline was written, we froze the
 hypotheses, metrics and exclusion rules
-(\texttt{docs/research-sprint/EXPERIMENT\_PROTOCOL.md}, committed
+(\path{docs/research-sprint/EXPERIMENT_PROTOCOL.md}, committed
 first). The baseline (\texttt{ait/baseline.py}) shares only query
 normalization with AIT. Part~A is an endpoint allowlist with exact
 normalized-path semantics: a path differing from a declared one only
@@ -859,16 +861,15 @@ paths outside the declared policy as a positive control. A row marked
 an undeclared path. It is a capability probe, not an observation of any
 integration, and not a vulnerability in the provider.
 
-\begin{table}[htbp]
+\begin{table*}[htbp]
   \caption{Credential Capability Probes (AIT-issued requests, sandbox
   accounts; not integration behavior)}
   \label{tab:live}
   \centering
   \renewcommand{\arraystretch}{1.2}
   \footnotesize
-  \setlength{\tabcolsep}{3pt}
   \input{results/generated/live_results.tex}
-\end{table}
+\end{table*}
 
 \noindent\textit{Interpretation note:} The ``readonly'' plans stayed
 within their declared single-path policy. The ``smoke'' plans confirmed
@@ -879,7 +880,7 @@ timings are reported.
 \label{sec:realint}
 
 \textbf{Status: not run.} No integration written by others has been
-observed yet. The procedure (\texttt{docs/research-sprint/REAL\_INTEGRATION\_STUDY.md})
+observed yet. The procedure (\path{docs/research-sprint/REAL_INTEGRATION_STUDY.md})
 requires selecting one open-source integration and recording its
 repository, commit and licence. The declared policy must be written
 \emph{before} capture, and capture uses the least intrusive authorized
@@ -974,15 +975,15 @@ public disclosures, not ground-truth API logs). These traces were fed
 to AIT's Analysis Engine and compared against expected categories.
 Table~\ref{tab:replay} is regenerated from the hashed replay artifact.
 
-\begin{table}[htbp]
+\begin{table*}[htbp]
   \caption{Log-Based Replay: Expected vs.\ Observed Categories
   (researcher-constructed traces)}
   \label{tab:replay}
   \centering
   \renewcommand{\arraystretch}{1.25}
   \footnotesize
-  \input{results/generated/replay_results.tex}
-\end{table}
+  \resizebox{\textwidth}{!}{\input{results/generated/replay_results.tex}}
+\end{table*}
 
 \noindent\textit{Takeaway:} Replay provides \emph{plausibility evidence}
 that AIT's detection categories map to independently reported incident
@@ -1003,7 +1004,7 @@ from the hashed sensitivity artifact.
   \centering
   \renewcommand{\arraystretch}{1.25}
   \footnotesize
-  \input{results/generated/risk_sensitivity.tex}
+  \resizebox{\columnwidth}{!}{\input{results/generated/risk_sensitivity.tex}}
 \end{table}
 
 Band transitions, when present, are recorded in
@@ -1016,14 +1017,14 @@ precise risk measurement.
 Table~\ref{tab:provenance} lists the selected paper artifacts and
 SHA-256 prefixes used for this compilation.
 
-\begin{table}[htbp]
+\begin{table*}[htbp]
   \caption{Selected Artifact Provenance}
   \label{tab:provenance}
   \centering
   \renewcommand{\arraystretch}{1.2}
   \footnotesize
-  \input{results/generated/artifact_provenance.tex}
-\end{table}
+  \resizebox{\textwidth}{!}{\input{results/generated/artifact_provenance.tex}}
+\end{table*}
 
 \subsection{Discussion}
 
@@ -1171,7 +1172,7 @@ Tooling and protocols for both are included.
 \texttt{uv run python -m ait.experiments.run\_offline --output-root results}
 regenerates every offline artifact, including the baseline comparison
 (raw per-case predictions in
-\texttt{results/raw/baseline-comparison/dev/predictions.json}). The
+\path{results/raw/baseline-comparison/dev/predictions.json}). The
 tables are rendered with
 \texttt{python -m ait.paper.render\_tables}. Artifacts embed timestamps,
 so byte hashes differ between runs. We verified that two independent runs
