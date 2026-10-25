@@ -51,9 +51,9 @@ def test_analysis_detects_hidden_endpoint_and_sensitive_field():
     assert "/api/v1/customers/cust-001/billing" in report.hidden_endpoints
     assert "billing_email" in report.sensitive_fields_accessed
     assert report.risk_score > 0
-    # 1 hidden + 2 sensitive + 2 divergence lines (baseline-only + mutated-only)
-    # = 25 + 40 + 30 = 95
-    assert report.risk_score == 95.0
+    # 1 hidden + 2 sensitive + |M \ B| = 1 -> 25 + 40 + 15 = 80.
+    # Baseline-only endpoints are summarised but not scored (no finding is emitted for them).
+    assert report.risk_score == 80.0
     assert isinstance(report.risk_score, float)
 
 

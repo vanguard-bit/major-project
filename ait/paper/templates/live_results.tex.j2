@@ -1,6 +1,6 @@
 \begin{tabular}{@{}clllccc@{}}
   \toprule
-  \textbf{\#} & \textbf{Platform} & \textbf{Scenario} & \textbf{Violation Type} & \textbf{Risk} & \textbf{Sev.} & \textbf{Det.?} \\
+  \textbf{\#} & \textbf{Platform} & \textbf{Probe plan} & \textbf{Paths outside declared policy} & \textbf{Risk} & \textbf{Sev.} & \textbf{Token result} \\
   \midrule
 {% for row in rows %}
   {{ row.index }} & {{ row.platform }} & {{ row.scenario }} & {{ row.violation }} & {{ row.risk }} & {{ row.severity }} & {{ row.detected }} \\

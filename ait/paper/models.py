@@ -75,6 +75,7 @@ class PaperArtifactsManifest(BaseModel):
     reproducibility: ArtifactRef | None = None
     live_runs: LiveRunsRefs = Field(default_factory=LiveRunsRefs)
     tool_comparison: ArtifactRef | None = None
+    baseline_comparison: ArtifactRef | None = None
 
     def ref_for(self, name: str) -> ArtifactRef | None:
         if name in {
@@ -102,6 +103,7 @@ class PaperArtifactsManifest(BaseModel):
             "robustness_metrics",
             "reproducibility",
             "tool_comparison",
+            "baseline_comparison",
         ):
             ref = getattr(self, key)
             if ref is not None:

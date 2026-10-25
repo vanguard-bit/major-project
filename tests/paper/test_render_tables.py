@@ -30,6 +30,7 @@ def test_render_all_writes_expected_fragments(tmp_path: Path):
             "robustness_results.tex",
             "tool_comparison.tex",
             "artifact_provenance.tex",
+            "baseline_comparison.tex",
         ]
     )
     for path in paths:

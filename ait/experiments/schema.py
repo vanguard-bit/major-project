@@ -14,6 +14,14 @@ from ait.models import (
     TargetConfig,
 )
 
+OutcomeCategory = Literal[
+    "confirmed_policy_violation",
+    "permitted_behavior",
+    "uncertain_policy",
+    "incomplete_observation",
+    "out_of_scope",
+]
+
 
 class ScenarioTokenConfig(BaseModel):
     """Strict token config for scenario YAML (unknown keys rejected)."""
@@ -142,6 +150,8 @@ class ScenarioDefinition(BaseModel):
     parent_scenario_id: str | None = None
     labels_invariant: bool = True
     observable_by_model: bool = True
+    canaries: list[str] = Field(default_factory=list)
+    ground_truth_outcome: OutcomeCategory | None = None
 
     @model_validator(mode="after")
     def reject_duplicate_exchanges(self) -> ScenarioDefinition:
