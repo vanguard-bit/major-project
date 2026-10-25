@@ -27,6 +27,7 @@ FRAGMENT_NAMES = (
     "robustness_results",
     "tool_comparison",
     "artifact_provenance",
+    "baseline_comparison",
 )
 
 CATEGORY_LABELS = {
@@ -385,15 +386,18 @@ def _live_rows(
         hidden = report.get("hidden_endpoints") or []
         findings = report.get("findings") or []
         categories = sorted({f.get("category") for f in findings if f.get("category")})
+        # Capability probes: AIT itself issued every request with the team's token.
         if hidden:
-            violation = "Hidden endpoint: " + ", ".join(str(h) for h in hidden)
-            detected = "Yes"
+            violation = "Undeclared (AIT-requested): " + ", ".join(
+                latex_escape(str(h)) for h in hidden
+            )
+            detected = "Reachable"
         elif findings:
             violation = ", ".join(str(c) for c in categories)
-            detected = "Yes"
+            detected = "Flagged"
         else:
             violation = "None"
-            detected = "No FP"
+            detected = "Within policy"
         severities = [f.get("severity") for f in findings if f.get("severity")]
         severity = severities[0] if severities else "---"
         if isinstance(severity, str):
@@ -506,6 +510,37 @@ def _tool_context(doc: dict[str, Any] | None) -> dict[str, Any]:
     return {"available": True, "rows": doc.get("payload", {}).get("rows", [])}
 
 
+def _baseline_context(doc: dict[str, Any] | None) -> dict[str, Any]:
+    if doc is None:
+        return {"available": False}
+    payload = doc["payload"]
+    rows = []
+    for key, label in (
+        ("scenario_level", "Scenario (any flag)"),
+        ("hidden_endpoint", "Hidden endpoint"),
+        ("sensitive_field_access", "Sensitive data"),
+        ("behavioral_divergence", "Behavioral divergence"),
+    ):
+        for method, name in (("ait", "AIT"), ("baseline", "Baseline")):
+            block = payload["methods"][method]
+            counts = block["scenario_level"] if key == "scenario_level" else block[
+                "categories"
+            ].get(key)
+            if not isinstance(counts, dict):
+                rows.append({"label": label, "method": name, "tp": "n/a", "fp": "n/a",
+                             "fn": "n/a", "tn": "n/a"})
+                continue
+            rows.append({"label": label, "method": name,
+                         **{k: int(counts[k]) for k in ("tp", "fp", "fn", "tn")}})
+    return {
+        "available": True,
+        "rows": rows,
+        "scored": payload["scored_count"],
+        "total": payload["scenario_count"],
+        "disagreements": len(payload["disagreements_on_shared_categories"]),
+    }
+
+
 def _provenance_rows(manifest: PaperArtifactsManifest, root: Path) -> list[dict[str, Any]]:
     rows = []
     for name, ref in sorted(manifest.selected_refs().items()):
@@ -596,6 +631,9 @@ def render_all(
         ),
         "tool_comparison": _tool_context(_read_selected(manifest, base, "tool_comparison")),
         "artifact_provenance": {"rows": _provenance_rows(manifest, base)},
+        "baseline_comparison": _baseline_context(
+            _read_selected(manifest, base, "baseline_comparison")
+        ),
     }
     bench_rows, bench_meta = _benchmark_rows(_read_selected(manifest, base, "benchmark_summary"))
     contexts["benchmark_results"] = {

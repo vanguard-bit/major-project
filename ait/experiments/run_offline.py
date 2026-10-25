@@ -11,6 +11,7 @@ from pydantic import ValidationError
 
 from ait.artifacts import ArtifactEnvelope, collect_provenance, write_artifact
 from ait.experiments.benchmark_analysis import BenchmarkConfig, run_benchmark_pipeline
+from ait.experiments.compare_baseline import run_comparison
 from ait.experiments.metrics import evaluate_categories, micro_average
 from ait.experiments.mock_executor import execute_scenario
 from ait.experiments.replay_incidents import run_replay_pipeline
@@ -246,6 +247,13 @@ def run_offline(
         f"Reproducibility PASS {repro['identical_finding_category_sets']}/"
         f"{repro['repetitions']}"
     )
+
+    typer.echo("=== 7/7 baseline comparison (dev corpus) ===")
+    cmp_raw, cmp_derived, cmp = run_comparison(scenario_root, output_root, "dev", command)
+    produced += [cmp_raw, cmp_derived]
+    for method, block in cmp["methods"].items():
+        s = block["scenario_level"]
+        typer.echo(f"{method}: scenario TP={s['tp']} FP={s['fp']} FN={s['fn']} TN={s['tn']}")
 
     entries: list[dict[str, Any]] = []
     for path in produced:

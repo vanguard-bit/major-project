@@ -160,6 +160,8 @@
 \begin{document}
 
 % ── Title Page ─────────────────────────────────────────────────────────────────
+% TITLE PENDING GUIDE APPROVAL. Registered title kept verbatim. Proposed:
+% "AIT: Differential Policy-Conformance Testing of Third-Party SaaS Integrations"
 \begin{titlepage}
     \centering
     \vspace*{2cm}
@@ -175,8 +177,9 @@
         \textbf{Authors}           & Adithya M N \textbar\ Alaap V \textbar\ Prajwal S \textbar\ Nikhil Gowda T S \\[4pt]
         \textbf{Guide}             & Apeksha Gowda, Asst.\ Professor, Dept.\ of CSE (ICB), BIT     \\[4pt]
         \textbf{Institution}       & Bangalore Institute of Technology, Bengaluru -- 560004          \\[4pt]
-        \textbf{Tech Stack}        & Python 3.11+ \textbar\ FastAPI \textbar\ Pydantic v2 \textbar\ asyncio/httpx \\[4pt]
-        \textbf{Detection Methods} & Differential Fuzzing \textbar\ Taint-Seeded Markers \textbar\ Dual-Phase Execution \\[4pt]
+        \textbf{Tech Stack}        & Python 3.12 \textbar\ FastAPI \textbar\ Pydantic v2 \textbar\ asyncio/httpx \\[4pt]
+        \textbf{Detection Methods} & Endpoint Allowlist \textbar\ Sensitive-Field-Name Markers \textbar\ Baseline vs.\ Mutated Comparison \\[4pt]
+        \textbf{Title Note}        & Registered title pending guide approval; see Section~\ref{sec:terms} \\[4pt]
         \textbf{Threat Coverage}   & C1: Over-scope \textbar\ C2: Field Harvesting \textbar\ C3: State-Dependent Evasion \\[4pt]
         \textbf{Date}              & 2025                                                            \\
     \end{tabular}
@@ -196,28 +199,25 @@
 \addcontentsline{toc}{chapter}{Abstract}
 
 Third-party SaaS integrations hold OAuth tokens that may exceed declared needs, yet few tools
-check whether runtime traffic matches an explicit integration policy. This report presents the
-Adversarial Integration Tester (AIT), an open-source framework combining dual-phase API
-stimulation with run-attributed marker checks to surface undeclared endpoints, sensitive fields,
-and baseline/mutated divergence --- classes that static scope audits and server-focused fuzzers
-do not address.
+check whether observed integration traffic matches an explicit integration policy. This report
+presents the Adversarial Integration Tester (AIT), a prototype that checks recorded HTTP
+exchanges against a declared policy using three rules: undeclared-endpoint detection,
+sensitive-field-name detection, and a comparison of a baseline run with a state-varied
+(``mutated'') run.
 
-AIT is explicitly a proof-of-concept: offline mock and platform-inspired
-scenarios exercise injected labels through a deterministic runner; empirical
-counts and timings appear only in shared generated fragments under
-\texttt{results/generated/}. A live SaaS evaluation pipeline
-(\texttt{ait/live\_runner.py}) is implemented for instrumented sandbox
-probes against real provider APIs, but GitHub and Notion Task~6
-execution remains \textbf{BLOCKED} without credentials and is marked
-\texttt{NOT RUN}---no live risk scores or timings are claimed here.
+AIT is a proof of concept with a \emph{controlled} evaluation: 33 author-written scenarios
+(16 primary, 13 robustness variants, 4 known evasions) whose traces and labels were written by
+the same team that wrote the detector. AIT detects every in-model violation by construction and
+misses the 4 evasions. A deliberately simple two-part baseline (endpoint allowlist plus exact
+canary-value search) run on identical traces \emph{ties} with AIT at the scenario level (15~TP,
+0~FP, 4~FN, 14~TN each), so the additional baseline-vs-mutated comparison added no detection on
+this corpus. Separately, \emph{credential capability probes}, in which AIT itself issued planned
+requests to GitHub, Notion and Google sandbox APIs, measure what a token can reach, not what any
+integration did. No independently developed integration and no independently authored held-out
+set have yet been evaluated; tooling and protocols for both are provided.
 
-Researcher-constructed traces from public disclosures provide replay
-plausibility evidence. Risk-weight perturbation analysis and Analysis Engine
-micro-benchmarks are reported from hashed offline artifacts; full production
-generalisation remains future work.
-
-\textbf{Index Terms} --- SaaS security, API fuzzing, taint analysis, OAuth, adversarial testing,
-behavioral divergence, third-party integrations, zero-trust, DevSecOps.
+\textbf{Index Terms} --- SaaS security, policy-conformance testing, differential testing,
+canary values, OAuth, third-party integrations, behavioral divergence.
 
 % ══════════════════════════════════════════════════════════════════════════════
 \chapter{Introduction}
@@ -261,11 +261,24 @@ malicious client. Neither can detect:
 
 \section{Scope and Claims}
 
-This report makes the following bounded claims. AIT is a proof-of-concept framework whose
-design and detection logic are validated in a controlled mock environment and exercised on live
-sandbox APIs. Results within the mock environment are exact by construction; live results reflect
-behaviour of real vendor APIs under the supplied token and declared policy. The contribution is
-the framework design, threat model, and methodology; empirical scale validation is future work.
+This report makes the following bounded claims. AIT is a proof-of-concept prototype whose
+detection logic is validated on a controlled, author-written scenario corpus; results there are
+exact by construction. Live sandbox runs are credential capability probes: they show what the
+supplied token could reach when AIT itself issued requests, not how any integration behaves. The
+contribution is the prototype design, threat model, and methodology; external validation is
+future work.
+
+\section{Terminology}
+\label{sec:terms}
+
+The project title was registered before implementation and uses ``differential fuzzing'' and
+``taint-seeded data tracking''. AIT performs neither. It does not generate or mutate inputs: the
+``mutated'' phase is a fixed state flag. It does not track data propagation: sensitive-data
+detection compares response \emph{field names} with configured markers. This report therefore
+uses \emph{differential (baseline vs.\ state-varied) policy-conformance testing} and
+\emph{sensitive-field-name checks}. Run-specific synthetic values are seeded only to attribute
+mock runs, and the risk score is a \emph{heuristic} triage signal. A retitle is pending the
+guide's approval.
 
 \section{Threat Model}
 
@@ -278,8 +291,9 @@ access by a user or administrator. Three capability classes are modelled:
     \item \textbf{C3 --- State-dependent evasion:} Behaving benignly under normal observation but activating unauthorised access under specific runtime conditions (feature flags, plan-tier signals, time-based triggers).
 \end{itemize}
 
-The security goal is to detect all three capability classes through black-box observation only ---
-no code instrumentation of the integration under test. Out of scope: denial-of-service, credential
+The security goal is to report observable instances of the three capability classes from
+recorded traffic only, with no code instrumentation of the integration under test. Detection is
+bounded by what the capture point observes. Out of scope: denial-of-service, credential
 theft from the SaaS platform, and OAuth server implementation vulnerabilities.
 
 Known detection boundaries: AIT cannot detect violations that occur entirely outside the
@@ -320,16 +334,13 @@ false negative cases in Chapter~\ref{ch:fn} (Figure~\ref{fig:fn-overview}).
 \section{Research Contributions}
 
 \begin{itemize}
-    \item An integration-centric adversarial testing methodology treating the integration as the test subject, combining differential API fuzzing with taint-seeded data tracking.
-    \item The AIT framework: a modular, open-source Coordinator API, Mock SaaS service, and Analysis Engine, detecting three violation categories with structured risk scoring.
-    \item A dual-phase execution model (baseline / mutated) that surfaces state-dependent evasion (C3) invisible to static analysis and single-phase testing.
-    \item An instrumentation-free taint-injection mechanism operating at the data layer, enabling precise run-attributed detection of sensitive field access.
-    \item A live SaaS evaluation pipeline (\texttt{ait/live\_runner.py}) for instrumented sandbox probes; GitHub/Notion Task~6 empirical results remain \texttt{NOT RUN}/\textbf{BLOCKED} without credentials.
-    \item A log-based replay experiment applying AIT's detection logic to researcher-constructed traces from public disclosures.
-    \item A false negative analysis characterising four evasion scenarios that defeat the current detection model.
-    \item A risk scoring sensitivity analysis over $\pm 30\%$ weight perturbation with band transitions recorded in offline artifacts.
-    \item A multi-ecosystem mock evaluation harness with YAML-defined platform-inspired scenarios spanning Slack-, GitHub-, Gmail-, Notion-, and Trello-style REST idioms, with automated aggregation for reproducible tabular results.
-    \item A read-only GitHub REST smoke probe plan (empirical rows \texttt{NOT RUN} without credentials), robustness/evasion YAML suites, and a micro-benchmark of Analysis Engine latency versus synthetic log width (generated timings).
+    \item An integration-centric policy-conformance testing methodology that treats the integration as the test subject and compares a baseline run with a state-varied run.
+    \item The AIT prototype: Coordinator API, Mock SaaS service, and Analysis Engine implementing three detection rules (DM1--DM3) with a heuristic risk score.
+    \item A controlled evaluation on 33 author-written scenarios, including robustness variants and four explicit false-negative (evasion) cases.
+    \item A fair simple baseline (endpoint allowlist + exact canary search) run on identical traces; AIT and the baseline tie on this corpus, reported as a negative result for DM3.
+    \item Credential capability probes against GitHub, Notion and Google sandbox APIs, clearly separated from integration behaviour.
+    \item Tooling for observing an independently developed integration (sanitized HAR/JSON-lines ingestion, outcome classification, secret-leak guard) and a frozen protocol for an independently authored held-out set; neither study has been run yet.
+    \item A log-based replay of researcher-constructed traces from public disclosures (plausibility only) and a $\pm 30\%$ sensitivity analysis of the heuristic risk weights.
 \end{itemize}
 
 \section{Novelty and Positioning}
@@ -373,26 +384,26 @@ dependency sequencing. EvoMaster \cite{evomaster2019} applies evolutionary algor
 OpenAPI test generation. Atlidakis et al.\ \cite{atlidakis2020} extended RESTler with
 property-based security checking rules.
 
-Differential fuzzing --- comparing behaviour across configurations for the same inputs --- has
-been applied to compilers \cite{yang2011} and cryptographic libraries \cite{petsios2017}.
-Kim et al.\ \cite{kim2022} applied it to microservice API consistency checking. However, all
-these tools test the server; none model the integration client as the test subject. AIT inverts
-this perspective.
+Differential testing --- comparing behaviour across configurations for the same inputs --- has
+been applied to compilers \cite{yang2011}. Kim et al.\ \cite{kim2022} applied it to
+microservice API consistency checking. These tools test the server. AIT instead treats the
+integration client as the test subject, and borrows only the \emph{comparison} idea (baseline
+vs.\ state-varied run), not input generation or mutation.
 
 Benamara et al.\ \cite{benamara2020} introduced differential fuzzing for DPI evasion in QUIC,
 demonstrating the applicability of differential approaches to protocol-layer behavioural
-divergence. Bulekov et al.\ \cite{bulekov2023} introduced coverage-guided taint-directed web
-API fuzzing, though requiring server-side instrumentation --- a constraint AIT explicitly
-relaxes.
+divergence.
 
-\section{Taint Analysis}
+\section{Taint Analysis and Canary Values}
 
 Static taint analysis \cite{livshits2005} identifies data flows without execution. Dynamic taint
 analysis \cite{clause2007}, exemplified by TaintDroid \cite{taintdroid2014}, instruments
-programs at runtime. Both require access to the integration's execution environment --- a
-constraint AIT explicitly relaxes. Pan et al.\ \cite{pan2022} proposed privacy-preserving
-synthetic data for API testing, a principle AIT operationalises through its taint-injection
-mechanism.
+programs at runtime and tracks how marked data propagates. AIT does \emph{not} do this: it
+observes recorded HTTP exchanges and checks response field names against configured markers.
+Our baseline searches traces for planted synthetic canary values, i.e.\ canary-based exposure
+detection, which cannot see propagation that never reaches the capture point. Pan et al.\
+\cite{pan2022} proposed privacy-preserving synthetic data for API testing; AIT likewise uses only
+synthetic values.
 
 \section{SaaS Security Auditing and Zero-Trust}
 
@@ -402,8 +413,7 @@ adversarial scenarios. NIST SP 800-207 \cite{nist800207} formalises zero-trust, 
 continuous workload verification; existing implementations address network-layer enforcement,
 not API-behavioural conformance. Ding et al.\ \cite{ding2023} proposed continuous
 authorisation under zero-trust but acknowledged absence of runtime behavioural testing tools.
-Wermke et al.\ \cite{wermke2022} found developers rarely audit integration behaviour against
-declared scopes post-deployment. Chandramouli \cite{chandramouli2023} surveys SaaS Security
+Chandramouli \cite{chandramouli2023} surveys SaaS Security
 Posture Management (SSPM) frameworks and identifies runtime behavioural verification as an
 open research gap.
 
@@ -419,7 +429,7 @@ with AIT but are positioned to clarify that each addresses a distinct threat sur
     \label{tab:tool-taxonomy}
     \begin{tabularx}{\textwidth}{lXXXX}
         \toprule
-        \textbf{Tool / Approach}  & \textbf{Scope Audit} & \textbf{Runtime Test} & \textbf{Diff.\ Phase} & \textbf{Taint} \\
+        \textbf{Tool / Approach}  & \textbf{Scope Audit} & \textbf{Runtime Test} & \textbf{Diff.\ Phase} & \textbf{Data check} \\
         \midrule
         OAuth Audit Tools         & \checkmark           & ---                   & ---                   & ---            \\[4pt]
         RESTler \cite{restler2019}& ---                  & \checkmark            & ---                   & ---            \\[4pt]
@@ -428,22 +438,22 @@ with AIT but are positioned to clarify that each addresses a distinct threat sur
         TaintDroid$^\dagger$ \cite{taintdroid2014}& ---  & \checkmark            & ---                   & \checkmark     \\[4pt]
         Boucher et al.\ \cite{boucher2024}& \checkmark   & ---                   & ---                   & ---            \\[4pt]
         Lundberg et al.\ \cite{lundberg2024}& \checkmark & \checkmark            & ---                   & ---            \\[4pt]
-        \textbf{AIT (Ours)}       & \checkmark           & \checkmark            & \checkmark            & \checkmark     \\
+        \textbf{AIT (Ours)}       & \checkmark           & \checkmark            & \checkmark            & Field names$^\ddagger$ \\
         \bottomrule
-        \multicolumn{5}{l}{\footnotesize $^\dagger$Requires device/server instrumentation.}
+        \multicolumn{5}{l}{\footnotesize $^\dagger$Requires device/server instrumentation (taint tracking).}\\
+        \multicolumn{5}{l}{\footnotesize $^\ddagger$Response field-name markers; no propagation tracking.}
     \end{tabularx}
 \end{table}
 
 \section{Summary of Research Gaps}
 
-The survey reveals a clear gap: no existing tool simultaneously performs scope-level auditing,
-runtime behavioural testing, differential phase comparison, and instrumentation-free taint
-tracking against an operational policy artifact. Static OAuth auditors \cite{boucher2024} see
-declared scopes but not traffic. Server-side fuzzers \cite{restler2019,evomaster2019} generate
-server vulnerabilities but treat the integration as benign. Taint frameworks \cite{taintdroid2014}
-require deep instrumentation access. AIT occupies the intersection that none of these tools cover,
-establishing integration-policy conformance as a first-class, runtime-verifiable security property
-(Figure~\ref{fig:positioning}).
+Within the limited survey above, we found no tool that reconciles observed integration traffic
+against an operational policy artifact using both a scope-level check and a baseline vs.\
+state-varied comparison. Static OAuth auditors \cite{boucher2024} see declared scopes but not
+traffic. Server-side fuzzers \cite{restler2019,evomaster2019} find server vulnerabilities but
+treat the integration as benign. Taint frameworks \cite{taintdroid2014} track propagation but
+need instrumentation; AIT does not track propagation at all. This is a positioning statement from
+a limited review, not a comprehensive survey (Figure~\ref{fig:positioning}).
 
 \begin{figure}[H]
     \centering
@@ -464,7 +474,7 @@ establishing integration-policy conformance as a first-class, runtime-verifiable
             node[edgelbl, above=2pt, midway, fill=white, inner sep=1pt] {no runtime test}
             (fuzz.west);
         \draw[arrow, dashed] (fuzz.east) --
-            node[edgelbl, above=2pt, midway, fill=white, inner sep=1pt] {no policy / taint}
+            node[edgelbl, above=2pt, midway, fill=white, inner sep=1pt] {no client policy}
             (ait.west);
     \end{tikzpicture}
 
@@ -478,7 +488,7 @@ establishing integration-policy conformance as a first-class, runtime-verifiable
         Scope audit        & \checkmark      & ---           & \checkmark \\
         Runtime test       & ---             & \checkmark    & \checkmark \\
         Diff.\ phase       & ---             & ---           & \checkmark \\
-        Taint (no instr.)  & ---             & ---           & \checkmark \\
+        Field-name markers & ---             & ---           & \checkmark \\
         \bottomrule
     \end{tabular}
     }
@@ -559,7 +569,7 @@ directly against real provider APIs, reusing the Analysis Engine for policy reco
 
 The Coordinator exposes \texttt{POST /runs} and \texttt{GET /runs/\{run\_id\}}. On invocation
 it: generates a unique 12-character hexadecimal \texttt{run\_id}; resolves an OAuth token; seeds
-the Mock SaaS with taint data; invokes the IUT under baseline and mutated conditions; retrieves
+the Mock SaaS with run-specific synthetic marker values; invokes the IUT under baseline and mutated conditions; retrieves
 the audit log; and forwards exchanges to the Analysis Engine.
 
 \texttt{TargetConfig} objects encode the security policy: \texttt{expected\_endpoints},
@@ -583,7 +593,8 @@ end-to-end detection pipeline.
     }
     \caption{End-to-end detection pipeline: observed integration traffic is normalised into
              \texttt{CapturedExchange} records, analysed against policy, and emitted as
-             structured findings. The same pipeline is used for both mock and live evaluations.}
+             structured findings. The same analysis is applied to scripted scenarios, capability
+             probes, and sanitized integration traces.}
     \label{fig:pipeline}
 \end{figure}
 
@@ -600,16 +611,25 @@ and Trello, so DM1--DM3 operate uniformly across both the CRM corpus and the ext
 
 \section{Live SaaS Runner}
 
-The \texttt{ait/live\_runner.py} module implements a direct evaluation path for explicit sandbox
-scenarios. It reads bearer tokens from environment variables, executes operator-defined baseline
-and mutated requests against real SaaS APIs (e.g., \texttt{api.github.com},
-\texttt{api.notion.com}), converts HTTP responses into \texttt{CapturedExchange} records
-without mock-side instrumentation, and adds policy findings when a request expected to be denied
-succeeds or vice versa.
+The \texttt{ait/live\_runner.py} module reads a bearer token from an environment variable and
+executes an operator-defined request plan (\texttt{configs/live/*.yaml}) against an allowlisted
+provider host (e.g., \texttt{api.github.com}, \texttt{api.notion.com}). It keeps only response
+field names and runs DM1--DM3. Because AIT itself issues every request, the runner measures
+\emph{credential capability} (what the token can reach), not any integration's behaviour.
+
+\section{Integration Trace Tool}
+
+\texttt{ait/integration\_trace.py} ingests traffic \emph{produced by an integration}, captured as
+a HAR file (e.g., from an authorized local proxy) or as JSON lines from the integration's own
+request log. It keeps only method, host, path (rewritten to the matching policy template), query
+parameter names and status, and reports what was not observed. It classifies each request as a
+confirmed policy violation, permitted behaviour, uncertain policy (undeclared, not assumed
+malicious), incomplete observation, or out of scope. It then runs AIT and the baseline on the same
+sanitized trace, and refuses to write output containing a secret-like pattern or a canary value.
 
 \section{Analysis Engine and Data Model}
 
-The Analysis Engine applies four detection mechanisms to \texttt{CapturedExchange} objects and
+The Analysis Engine applies three detection rules (DM1--DM3) to \texttt{CapturedExchange} objects and
 produces a \texttt{RunReport} with \texttt{Finding} objects and a risk score. All data is typed
 via Pydantic v2 models, enabling deterministic JSON serialisation and downstream SIEM ingestion.
 
@@ -681,20 +701,15 @@ capability C3. Two execution phases differ only in the state signal sent to the 
 Endpoints in the mutated set but not the baseline set signal state-dependent behaviour that may
 conceal unauthorised access.
 
-\section{Taint-Seeded Data Tracking}
+\section{Synthetic Markers and Sensitive-Field Checks}
 
-Before each run, \texttt{POST /admin/seed} updates sensitive fields in Mock SaaS records
-with run-specific synthetic tokens (e.g., \texttt{billing\_email = \{run\_id\}@example.test}).
-These values are globally unique, contain no real user data, and serve two roles:
-
-\begin{itemize}
-    \item \textbf{Taint injection:} Enabling response-level detection of sensitive field access.
-    \item \textbf{Run attribution:} Ensuring concurrent test runs cannot contaminate one another's audit records.
-\end{itemize}
-
-No IUT instrumentation is required. In the live SaaS runner, sensitive markers are checked
-against actual API response payloads; real credentials or PII in responses are never logged in
-plaintext.
+Before each mock run, \texttt{POST /admin/seed} writes run-specific synthetic values into the
+sensitive fields of Mock SaaS records (e.g., \texttt{billing\_email = \{run\_id\}@example.test}).
+They contain no real user data. In the current implementation they serve \emph{run attribution}
+only. Detection (DM2) never searches for them; it matches response \emph{field names} against
+\texttt{sensitive\_markers}. Searching for the planted values themselves is what the canary
+baseline does (Section~\ref{sec:baseline}). The live runner discards response bodies and keeps
+only field names.
 
 \section{Detection Mechanisms}
 
@@ -706,9 +721,10 @@ where $R$ = reached endpoints, $E$ = expected endpoints. Each $h \in H$ yields a
 HIGH-severity \texttt{HIDDEN\_ENDPOINT} finding.
 
 \textbf{DM2 --- Sensitive Field Access Detection (addresses C2):}
-Any \texttt{CapturedExchange} where \texttt{contains\_sensitive\_marker} is true or response
-fields intersect \texttt{sensitive\_markers} yields a CRITICAL-severity
-\texttt{SENSITIVE\_FIELD\_ACCESS} finding.
+Any \texttt{CapturedExchange} whose response field paths (or their leaf names) intersect
+\texttt{sensitive\_markers}, or which is flagged \texttt{contains\_sensitive\_marker}, yields a
+CRITICAL-severity \texttt{SENSITIVE\_FIELD\_ACCESS} finding. This is a field-\emph{name} check:
+a renamed field carrying the same value is missed (FN4).
 
 \textbf{DM3 --- Behavioural Divergence Detection (addresses C3):}
 \[
@@ -759,7 +775,7 @@ Figure~\ref{fig:dm-map} consolidates the mapping from threat classes to detector
 Under black-box observation of traffic recorded in the audit log and relative to a supplied
 \texttt{TargetConfig}, AIT reports: (G1) any reached path outside \texttt{expected\_endpoints};
 (G2) responses whose extracted fields intersect \texttt{sensitive\_markers} or carry the
-synthetic taint flag; and (G3) phase-specific endpoint-set differences consistent with DM3.
+sensitive-marker flag; and (G3) phase-specific endpoint-set differences consistent with DM3.
 These are sound with respect to the observed run --- they do not prove absence
 of violations outside the logged surface.
 
@@ -769,12 +785,17 @@ of violations outside the logged surface.
     S = \min\!\bigl(100,\; w_H \cdot |H| + w_F \cdot |F_s| + w_D \cdot |D|\bigr)
 \]
 
-Weights $(w_H, w_F, w_D) = (25, 20, 15)$ are heuristic design constants inspired by the
-CVSS v3.1 severity taxonomy
-\cite{cvss31} (not empirically calibrated scores): C1 maps to Scope:Changed/Confidentiality:High (base score 7.5--9.0, $w_H=25$);
-C2 maps to Confidentiality:High without scope change (6.5--7.5, $w_F=20$); C3 represents
-architectural risk without confirmed data access (4.0--6.0, $w_D=15$). Score bands: 0--25
-(Low), 26--50 (Medium), 51--75 (High), 76--100 (Critical).
+where $|H|$ is the number of undeclared endpoints, $|F_s|$ the number of distinct sensitive field
+names observed, and $|D| = |M \setminus B|$. Weights $(w_H, w_F, w_D) = (25, 20, 15)$ are heuristic
+design constants. Their ordering (C1 $>$ C2 $>$ C3) was chosen by the authors with the CVSS v3.1
+severity vocabulary \cite{cvss31} in mind; they are not derived from CVSS scores and are not
+empirically calibrated. Score bands: 0--25 (Low), 26--50 (Medium), 51--75 (High), 76--100
+(Critical).
+
+\textit{Post-audit correction.} Before this revision the code added $w_D$ per divergence summary
+line, including baseline-only endpoints for which no finding was emitted. The code now implements
+$|D| = |M \setminus B|$. On the offline corpus this changes no score (verified by re-running all
+artifacts).
 Figure~\ref{fig:risk-bands} shows the score bands used for triage.
 
 \begin{figure}[H]
@@ -835,7 +856,7 @@ specifications reflect the configurations used during development and evaluation
 
 \begin{itemize}
     \item Offline mock assessments are dominated by in-process ASGI transport rather than Analysis Engine compute; see generated benchmark timings for measured medians.
-    \item Live SaaS assessments (GitHub, Notion sandbox runs) are \texttt{NOT RUN} without credentials; measured WAN timings are therefore unavailable.
+    \item No live timings are reported; capability probes were not timed.
     \item Analysis Engine micro-benchmark rows are regenerated from the hashed offline artifact (Table~\ref{tab:benchmark}); do not cite hand-copied latencies.
     \item A production deployment with persistent storage (PostgreSQL or Redis backend) will require higher RAM and I/O throughput than the minimum specification.
 \end{itemize}
@@ -852,7 +873,7 @@ specifications reflect the configurations used during development and evaluation
         \toprule
         \textbf{Component}         & \textbf{Technology / Version}          & \textbf{Role}                    \\
         \midrule
-        Language Runtime           & Python 3.11+                           & Primary runtime                  \\[4pt]
+        Language Runtime           & Python 3.12                            & Primary runtime                  \\[4pt]
         Web Framework              & FastAPI (0.100+)                       & Coordinator API and Mock SaaS    \\[4pt]
         ASGI Server                & Uvicorn (0.23+)                        & HTTP serving                     \\[4pt]
         HTTP Client                & asyncio / httpx (0.24+)                & Async outbound requests          \\[4pt]
@@ -933,31 +954,25 @@ A standard development environment is set up as follows:
     caption={Environment setup commands},
     label={lst:setup}
 ]
-# Clone the repository
-git clone https://github.com/<org>/ait.git && cd ait
+# Clone and install (uv + lockfile)
+git clone https://github.com/vanguard-bit/major-project.git && cd major-project
+uv sync --dev
 
-# Create and activate a virtual environment
-python3 -m venv .venv
-source .venv/bin/activate          # Linux / macOS
-# .venv\Scripts\activate           # Windows
+# Offline evidence: scenarios, replay, robustness, baseline comparison
+uv run python -m ait.experiments.run_offline --output-root results
+uv run python -m ait.paper.render_tables --manifest configs/paper_artifacts.yaml \
+    --output results/generated
 
-# Install all dependencies
-pip install -r requirements.txt
+# Optional demo services (separate terminals)
+uv run uvicorn ait.api:app --port 8000
+uv run uvicorn ait.mock_saas:app --port 8001
+uv run uvicorn ait.demo_integration:app --port 8002
 
-# Set live SaaS tokens (never commit these)
-export AIT_GITHUB_TOKEN="ghp_xxxxxxxxxxxx"
-export AIT_NOTION_TOKEN="secret_xxxxxxxxxxxx"
+# Capability probes: token via environment variable only, never committed
+uv run python -m ait.live_runner --help
 
-# Start all three services in separate terminals
-uvicorn coordinator.api:app --port 8000
-uvicorn mock_saas.app:app  --port 8001
-uvicorn iut.demo_integration:app --port 8002
-
-# Run the full mock paper-results pipeline
-python generate_paper_results.py
-
-# Run live SaaS evaluation
-python generate_live_saas_results.py
+# Sanitize a captured integration trace (see REAL_INTEGRATION_STUDY.md)
+uv run python -m ait.integration_trace --help
 \end{lstlisting}
 
 \subsection{Implementation: Core Detection Logic}
@@ -1085,7 +1100,7 @@ goals into concrete implementation behaviours.
         results.                                                                               \\[6pt]
     FR-3 & Run Isolation         &
         Each run MUST be assigned a unique 12-character hexadecimal \texttt{run\_id} for
-        taint seeding and audit log attribution, ensuring concurrent runs cannot contaminate
+        synthetic-marker seeding and audit log attribution, ensuring concurrent runs cannot contaminate
         one another's records.                                                                 \\[6pt]
     FR-4 & Baseline Phase        &
         The Coordinator MUST invoke the IUT under normal state, recording all API calls
@@ -1101,7 +1116,7 @@ goals into concrete implementation behaviours.
         endpoint reached that is absent from \texttt{expected\_endpoints}.                     \\[6pt]
     FR-8 & Sensitive Field (DM2) &
         The system MUST raise a CRITICAL-severity \texttt{SENSITIVE\_FIELD\_ACCESS} finding
-        whenever a response contains a value matching \texttt{sensitive\_markers}.             \\[6pt]
+        whenever a response field name matches \texttt{sensitive\_markers}.                    \\[6pt]
     FR-9 & Structured Output    &
         The system MUST produce a structured JSON \texttt{RunReport} for SIEM ingestion
         and CI/CD gating.                                                                      \\[6pt]
@@ -1118,24 +1133,28 @@ goals into concrete implementation behaviours.
 
 \section{Evaluation Design and Scope}
 
-The evaluation has five components:
+We keep six kinds of evidence strictly separate:
 
-\begin{itemize}
-    \item \textbf{Controlled mock-environment experiments:} A 16-scenario offline corpus --- 6~CRM scenarios (3~isolation + 3~controls) and 10~platform-inspired mocks (7~violation-oriented + 3~compliant controls).
-    \item \textbf{Live SaaS evaluation:} Executing explicit sandbox scenarios against real provider APIs (GitHub and Notion).
-    \item \textbf{Read-only GitHub REST smoke probe:} Under an explicit allowlist policy.
-    \item \textbf{Tool capability comparison:} With RESTler and EvoMaster.
-    \item \textbf{Log-based replay:} Applying AIT's detection logic to researcher-constructed traces from public disclosures.
-\end{itemize}
+\begin{enumerate}
+    \item \textbf{Controlled scenarios (run).} 16 primary scenarios (6~CRM, 10~platform-inspired), plus 13 robustness variants and 4 evasion cases. The same team wrote the traces, the labels and the detector, so this is \emph{development data}, not a test set.
+    \item \textbf{Baseline comparison (run).} AIT vs.\ a simple two-part baseline on the same 33 traces, under a protocol frozen before the baseline was written (Section~\ref{sec:baseline}).
+    \item \textbf{Credential capability probes (run).} AIT-issued requests to sandbox APIs; these say nothing about integration behaviour (Section~\ref{sec:livesaas}).
+    \item \textbf{Independently developed integration (not run).} Tooling and procedure are ready (Section~\ref{sec:realint}).
+    \item \textbf{Independently authored held-out set (not run).} To be frozen and tagged by a second author before evaluation.
+    \item \textbf{Replay and tool comparison.} Incident replay is plausibility only; the RESTler/EvoMaster comparison was not run.
+\end{enumerate}
+
+Scripted scenarios are replayed deterministically; payload-level reproduction is verified
+(Section~\ref{sec:repro}).
 
 \section{Mock Environment: Test Scenarios}
 
 Three scenarios isolate and combine detection mechanisms:
 
 \begin{itemize}
-    \item \textbf{S1 --- C1 only:} IUT accesses billing endpoint in both phases; no taint configured.
-    \item \textbf{S2 --- C2 only:} IUT accesses only declared endpoints; responses contain tainted field values.
-    \item \textbf{S3 --- C1 + C2 + C3 combined:} IUT accesses billing in the mutated phase only, with tainted \texttt{billing\_email} and \texttt{tax\_id}.
+    \item \textbf{S1 --- C1 only:} IUT accesses billing endpoint in both phases; no sensitive fields returned.
+    \item \textbf{S2 --- C2 only:} IUT accesses only declared endpoints; responses contain marker-named sensitive fields.
+    \item \textbf{S3 --- C1 + C2 + C3 combined:} IUT accesses billing in the mutated phase only, receiving \texttt{billing\_email} and \texttt{tax\_id}.
 \end{itemize}
 
 \section{Mock Environment: Detection Results}
@@ -1155,8 +1174,9 @@ mock corpus (regenerated from \texttt{scenario\_metrics}):
 \end{table}
 
 Under injected labels, AIT's implementation matches the intended DM1--DM3 logic
-on this controlled corpus. Perfect controlled scores, when observed, validate
-implementation behaviour rather than broad effectiveness.
+on this controlled corpus. The unit is one scenario $\times$ one category, so precision and
+recall here measure implementation correctness on author-written traces, not detection
+performance on unseen behaviour.
 
 \section{Platform-Inspired Mock Suite}
 
@@ -1170,31 +1190,78 @@ implementation behaviour rather than broad effectiveness.
     \input{results/generated/platform_scenario_results.tex}
 \end{table}
 
-AIT maintains detection on heterogeneous platform-inspired mock idioms while
-reporting zero risk on compliant baselines present in the generated table.
+On these author-written traces, AIT flags every injected violation and reports zero risk on
+the compliant controls in the generated table. These paths are synthetic mocks, not
+measurements of vendor production APIs.
 
-\section{Live SaaS Evaluation}
+\section{Baseline Comparison}
+\label{sec:baseline}
+
+% CLAIM:baseline-comparison
+\textbf{Protocol.} Before the baseline was written, we froze the hypotheses, metrics and
+exclusion rules (\texttt{docs/research-sprint/EXPERIMENT\_PROTOCOL.md}, committed first). The
+baseline (\texttt{ait/baseline.py}) shares only query normalization with AIT. Part~A is an
+endpoint allowlist with exact normalized-path semantics: a path differing from a declared one only
+in its query string is recorded as \emph{ambiguous}, not flagged. Part~B is an exact search for
+planted synthetic canary values in request paths, request bodies and response bodies. The
+current corpus declares no canaries. We therefore use a rule fixed in advance: canaries are the
+string values ($\geq$8 characters) in marker-named response fields, i.e.\ the values the seeding
+step would plant. Both methods run on the same 33 traces. The unit is a scenario (any flag) or
+a scenario $\times$ category. The baseline has no counterpart to DM3.
 
 \begin{table}[H]
     \centering
-    \caption{Live SaaS Evaluation Results (Sandbox Accounts;
-    unavailable artifacts render as \texttt{NOT RUN})}
+    \caption{AIT vs.\ Two-Part Baseline on the Development Corpus (identical traces; raw
+    counts; author-written scenarios)}
+    \label{tab:baseline}
+    \footnotesize
+    \input{results/generated/baseline_comparison.tex}
+\end{table}
+
+\textbf{Result.} The methods \emph{tie} (Table~\ref{tab:baseline}). They agree on every case,
+and both miss the same four evasion cases. Hypothesis H-B1 (tie on endpoints) holds. H-B2
+(disagreement on sensitive data) did not materialize, because the canary rule overlaps DM2 by
+construction on this corpus. H-B3 (an AIT advantage from DM3) is \emph{not supported}: every
+scenario with behavioural divergence also contains an undeclared endpoint, so the simple
+allowlist already flags it. On this corpus, AIT's additional comparison logic contributes a
+divergence label and a risk score, but no additional detection. Separating the methods would
+need a corpus with undeclared-but-permitted state changes, or with canaries that leave
+marker-named fields. With 33 related, hand-written cases we draw no statistical conclusion.
+
+\section{Credential Capability Probes}
+\label{sec:livesaas}
+
+\texttt{ait/live\_runner.py} executes request plans (\texttt{configs/live/*.yaml}) against
+GitHub, Notion and Google sandbox APIs using tokens from environment variables. \emph{AIT itself
+issues every request}; in the ``smoke'' plans, the plan deliberately requests paths outside the
+declared policy as a positive control. A row marked ``Reachable'' therefore means only that the
+supplied token could reach an undeclared path. It is a capability probe, not an observation of
+any integration, and not a vulnerability in the provider.
+
+\begin{table}[H]
+    \centering
+    \caption{Credential Capability Probes (AIT-issued requests, sandbox accounts; not
+    integration behaviour)}
     \label{tab:live-results}
     \footnotesize
     \input{results/generated/live_results.tex}
 \end{table}
 
-Live sandbox Task~6 remains \textbf{BLOCKED} without credentials; rows above are
-\texttt{NOT RUN}. The live runner design targets positive and negative control plans
-on GitHub and Notion; empirical claims await redacted artifacts from real sandbox runs.
+The ``readonly'' plans stayed within their declared single-path policy. The ``smoke'' plans
+confirmed that the tokens could reach the extra paths they requested. No live timings are
+reported.
 
-\section{Live GitHub REST Smoke Probe}
+\section{Observation of an Independently Developed Integration}
+\label{sec:realint}
 
-A separate read-only probe plan exercises \texttt{api.github.com} under a stricter policy
-allowlisting only \texttt{/user}, with additional undeclared \texttt{/user/repos} and
-\texttt{/user/orgs} requests. Empirical smoke-probe results remain \texttt{NOT RUN}
-until a hashed live artifact is selected. When executed, the signal of interest is policy
-mismatch relative to the allowlist, not server-side exploitability.
+\textbf{Status: not run.} No integration written by others has been observed yet. The procedure
+(\texttt{docs/research-sprint/REAL\_INTEGRATION\_STUDY.md}) requires selecting one open-source
+integration and recording its repository, commit and licence. The declared policy must be written
+\emph{before} capture, and capture uses the least intrusive authorized method (the integration's
+own request log or an authorized local proxy, never weakening TLS). Each request is then
+classified into the five outcome categories, and AIT and the baseline run on the same sanitized
+trace. If this study cannot be completed, the report's claim remains limited to a prototype with
+controlled evaluation.
 
 \section{Robustness and Noise}
 
@@ -1228,8 +1295,8 @@ reports \texttt{NOT RUN} (RESTler/EvoMaster were not claimed as executed for thi
 \section{Log-Based Replay: Researcher-Constructed Traces}
 
 % CLAIM:replay-exact-match
-Researcher-constructed traces from public disclosures (CircleCI 2023, Okta 2022,
-GitHub 2022) are replayed through the Analysis Engine. Table~\ref{tab:replay} is
+Researcher-constructed traces from public disclosures (CircleCI 2023 \cite{circleci2023},
+Okta 2022 \cite{okta2022}, GitHub 2022 \cite{github2022}) are replayed through the Analysis Engine. Table~\ref{tab:replay} is
 regenerated from the hashed replay artifact.
 
 \begin{table}[H]
@@ -1346,9 +1413,9 @@ monitoring beyond point-in-time assessment.
 
 If an integration reads sensitive data from a field whose name does not match any token in
 \texttt{sensitive\_markers} (e.g., a renamed or obfuscated field in a non-standard API response
-schema), taint detection will fail. \textbf{Mitigation direction:} value-pattern matching in
-addition to field-name matching; semantic field classification using NLP. The mock harness
-reproduces this miss explicitly (Section~5.6, FN4 negative row).
+schema), DM2 will miss it, because it checks field names only. \textbf{Mitigation direction:}
+canary-value matching (as in the baseline's Part~B) in addition to field-name matching. The
+evasion suite reproduces this miss explicitly (Table~\ref{tab:robust}).
 
 These false negative cases are not implementation bugs but fundamental constraints of the
 black-box, session-bounded, field-name-based detection model.
@@ -1359,39 +1426,45 @@ black-box, session-bounded, field-name-based detection model.
 \section{Current Limitations}
 
 \textbf{L1: External Validity.}
-Primary evidence comprises mock scenarios, replayed public incidents, and a live probe design
-for two sandbox accounts (GitHub and Notion) whose Task~6 empirical rows are
-\texttt{NOT RUN}/\textbf{BLOCKED} without credentials. The framework has not been
-evaluated tenant-wide on live production SaaS platforms; this remains the primary limitation.
+No independently developed integration has been observed. The evidence consists of
+author-written scripted scenarios, researcher-constructed incident replays, and credential
+capability probes. This is the primary limitation.
 
-\textbf{L2: Evaluation Scale.}
-The offline mock corpus comprises 16~YAML scenarios: 6~CRM (3~isolation + 3~controls) and
-10~platform-inspired (7~violation-oriented + 3~compliant controls); live sandbox plans exist but empirical runs are
-blocked. A larger, more adversarial test suite is
-needed.
+\textbf{L2: Circular Evaluation.}
+The same team wrote the detector, the traces and the labels; perfect scores on the 16 primary
+scenarios hold by construction. An independently authored, frozen held-out set has not yet been
+evaluated.
 
-\textbf{L3: Scoring Model.}
+\textbf{L3: Evaluation Scale.}
+33 related, hand-written cases (16 primary, 13 robustness variants, 4 evasions). Variants share
+parents, so the cases are not independent, and interval estimates are descriptive only.
+
+\textbf{L4: Baseline Strength.}
+AIT did not outperform a simple allowlist plus canary search on this corpus
+(Section~\ref{sec:baseline}).
+
+\textbf{L5: Scoring Model.}
 The heuristic design-constant weights are justified and sensitivity-analysed, but not empirically validated
 against a ground-truth dataset of real integration violations. Allow/deny live policy checks remain
 future work / not yet implemented.
 
-\textbf{L4: Two-Phase Model Coverage.}
+\textbf{L6: Two-Phase Model Coverage.}
 Real integrations may exhibit variation across more state dimensions than two phases can capture
 (FN3).
 
-\textbf{L5: In-Memory State.}
+\textbf{L7: In-Memory State.}
 Non-persistent and not multi-process safe; a production deployment requires a persistent backend
 (PostgreSQL or Redis).
 
-\textbf{L6: Live Runner Authentication.}
+\textbf{L8: Live Runner Authentication.}
 The current bearer-token auth shape covers GitHub, Notion, Slack, and Google; platforms with
 non-standard auth conventions require per-platform adapters.
 
 \section{Future Scope}
 
-\textbf{F1: Live Platform Evaluation at Scale.}
-Expand live sandbox evaluation to Slack, GitHub, and Google Workspace at broader scale --- the
-single highest-impact next step.
+\textbf{F1: Independent Evaluation.}
+Observe independently developed integrations in authorized sandboxes, and evaluate an
+independently authored, frozen held-out set --- the highest-impact next steps.
 
 \textbf{F2: Automatic Policy Inference.}
 Develop automatic policy inference from OpenAPI specifications and historical access logs,
@@ -1408,9 +1481,8 @@ behavioural spaces, addressing FN3.
 \textbf{F5: Outbound Traffic Monitoring.}
 Add network egress monitoring to address FN1 (out-of-band exfiltration).
 
-\textbf{F6: Value-Pattern Taint Matching.}
-Implement value-pattern taint matching (regular expressions, semantic field classification via
-NLP) in addition to field-name matching, addressing FN4.
+\textbf{F6: Canary-Value Matching in AIT.}
+Add canary-value matching to AIT in addition to field-name matching, addressing FN4.
 
 \textbf{F7: CI/CD Pipeline Integration.}
 Formalise CI/CD pipeline integration enabling automated regression testing on each integration
@@ -1422,25 +1494,44 @@ Validate heuristic design-constant weights against a labelled dataset of real in
 % ══════════════════════════════════════════════════════════════════════════════
 \chapter{Conclusion}
 
-The Adversarial Integration Tester (AIT) closes a gap left by server-focused fuzzers and static
-scope tools: black-box reconciliation of observed integration traffic against an explicit policy
-artifact. The design combines an integration-centric test subject, dual-phase stimulation for C3,
-and instrumentation-free taint markers for C2.
+AIT is a prototype for checking recorded integration traffic against an explicit policy. It uses
+an integration-centric test subject, a baseline vs.\ state-varied comparison for C3, and
+field-name checks for C2. On a controlled, author-written corpus it behaves as designed, including
+its four documented misses. A deliberately simple allowlist-plus-canary baseline matched it case
+for case, so we cannot yet claim that its additional logic improves detection. Credential
+capability probes on real sandbox APIs show that tokens can reach paths beyond narrow declared
+policies, but they do not show integration behaviour.
 
-A live SaaS evaluation pipeline (\texttt{ait/live\_runner.py}) is implemented for
-instrumented sandbox probes, but GitHub and Notion Task~6 results remain
-\texttt{NOT RUN}/\textbf{BLOCKED} without credentials---no live risk scores are claimed.
+The Hardware and Software Requirements chapter (Chapter~\ref{ch:hwsw}) shows that AIT runs on
+commodity hardware with an open-source Python stack. The next steps needed to support stronger
+claims are a frozen, independently authored held-out set and observation of an independently
+developed integration; tooling and protocols for both are included.
 
-The Hardware and Software Requirements chapter (Chapter~\ref{ch:hwsw}) establishes that AIT
-can be deployed on commodity hardware using an entirely open-source Python stack, with clear
-upgrade paths to production-grade persistent backends and CI/CD integration.
+\section*{Reproducibility}
+\label{sec:repro}
 
-Claims are scoped to controlled mocks, live sandbox evaluations, optional smoke probes, and
-replayed public incidents; false-negative analysis bounds guarantees. Broader tenant-scale
-validation remains future work. This work establishes integration-policy conformance as a
-first-class security property in SaaS ecosystems, tightening least-privilege practice under
-zero-trust assumptions and complementing --- not replacing --- existing server-side fuzzing and
-static OAuth auditing tools.
+\texttt{uv sync --dev} followed by
+\texttt{uv run python -m ait.experiments.run\_offline --output-root results} regenerates every
+offline artifact, including the baseline comparison (raw per-case predictions in
+\texttt{results/raw/baseline-comparison/dev/predictions.json}). The tables are rendered with
+\texttt{python -m ait.paper.render\_tables}. Artifacts embed timestamps, so byte hashes differ
+between runs. We verified that two independent runs (Windows, Python~3.12.10) produce payloads
+identical to each other and to the committed raw artifacts, apart from timing values and OS path
+separators. Capability probes need sandbox tokens and are not re-runnable from the repository
+alone.
+
+\section*{Ethics and Responsible Use}
+
+All scenario data are synthetic. The capability probes used team-owned sandbox accounts and
+read-only plans. Only response field names were retained; no tokens, response bodies or personal
+data were committed. Any integration study must use an authorized sandbox, respect the provider's
+terms of service, and never disable TLS verification or bypass certificate pinning.
+
+% AI-USE DISCLOSURE: PENDING HUMAN CHECK of institution and venue policy.
+% Do not submit until replaced with an accurate statement, e.g.:
+% "An AI coding assistant was used to help audit the repository, implement the
+%  baseline and trace tooling, and revise this report. The authors reviewed
+%  all changes and take responsibility for the content."
 
 % ══════════════════════════════════════════════════════════════════════════════
 \begin{thebibliography}{35}
@@ -1532,11 +1623,6 @@ Service REST APIs,'' \textit{Proc.\ IEEE S\&P}, 2020.
 X.\ Yang, Y.\ Chen, E.\ Eide, and J.\ Regehr, ``Finding and Understanding Bugs in C
 Compilers,'' \textit{Proc.\ PLDI}, 2011.
 
-\bibitem{petsios2017}
-T.\ Petsios, J.\ Zhao, A.\ D.\ Keromytis, and S.\ Jana, ``SlowFuzz: Automated
-Domain-Independent Detection of Algorithmic Complexity Vulnerabilities,''
-\textit{Proc.\ CCS}, 2017.
-
 \bibitem{kim2022}
 S.\ Kim, Y.\ Lee, and J.\ Choi, ``DiffMicro: Differential Testing for Semantic Consistency
 in Microservice API Evolution,'' \textit{Proc.\ IEEE ICWS}, 2022.
@@ -1544,10 +1630,6 @@ in Microservice API Evolution,'' \textit{Proc.\ IEEE ICWS}, 2022.
 \bibitem{benamara2020}
 F.\ Benamara, N.\ Mager, and M.\ Dacier, ``DPIFuzz: A Differential Fuzzing Framework to
 Detect DPI Elusion Strategies for QUIC,'' \textit{Proc.\ ACSAC}, 2020.
-
-\bibitem{bulekov2023}
-A.\ Bulekov, B.\ Das, S.\ Hajnoczi, and M.\ Egele, ``Fuzztruction: Using Fault Injection to
-Hack Fuzzing Mutators,'' \textit{Proc.\ USENIX Security}, 2023.
 
 \bibitem{livshits2005}
 V.\ B.\ Livshits and M.\ S.\ Lam, ``Finding Security Vulnerabilities in Java Applications
@@ -1572,10 +1654,6 @@ NIST Special Publication 800-207, Aug.\ 2020.
 \bibitem{ding2023}
 Y.\ Ding, R.\ Phan, and T.\ P\"{o}ppelmann, ``Continuous Authorization for Third-Party SaaS
 Integrations under Zero Trust,'' \textit{Proc.\ IEEE CloudCom}, 2023.
-
-\bibitem{wermke2022}
-D.\ Wermke et al., ``A Large Scale Investigation of Obfuscation Use in Google Play,''
-\textit{Proc.\ USENIX Security}, 2022.
 
 \bibitem{chandramouli2023}
 R.\ Chandramouli, ``SaaS Security Posture Management: Taxonomy, Challenges, and Research

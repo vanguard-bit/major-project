@@ -193,7 +193,7 @@ def analyze_run(
         calculate_risk_score(
             len(hidden_endpoints),
             len(sensitive_fields),
-            len(divergence_summary),
+            len(mutated_only),
             weights=effective_weights,
         ),
         2,

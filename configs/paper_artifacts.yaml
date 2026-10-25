@@ -1,25 +1,25 @@
 schema_version: 1.0.0
 offline_manifest:
   path: results/derived/offline_manifest.json
-  sha256: 95b5f8547f66b0e804acb6ad4c634055319f3ae1e90f071a536ec37434174d1e
+  sha256: 89737773e803c7209311e4281e9130ee2a0b90b0f2f89266eaa4f0ad357cefac
 scenario_metrics:
   path: results/derived/scenario_metrics.json
-  sha256: 339c25c7a1947998d39e3bd1d194e01a9c5b97ef943f6239534fef22f6b5d1c6
+  sha256: f7643ddbd17e3f587733a2a09410d90eac617d089cf4561e594c96116bdcc9af
 sensitivity_summary:
   path: results/derived/sensitivity_summary.json
-  sha256: 73d0b4a67c3bf263be017a3fa22e3e07188c7a820efd289f0ccfe89617bc1624
+  sha256: dad32c61a4761e848b040222552e719aa470fbc1a1ab37b54c4c1ce0eee7512f
 sensitivity_rows:
   path: results/raw/sensitivity/sensitivity_rows.json
-  sha256: 4fe7e0c6b0ab66d603b4275819bc9448eb7fb0e4c0915d33087cd21b19451232
+  sha256: f291f9e84218d59248b9929fb7de796c30620ee1ed64e5a5c736b69c1c804a16
 replay_match_table:
   path: results/derived/replay_match_table.json
-  sha256: caac18a43995d2dacd1234d366cb13fcf341b5a68d0f2879a910bf1f8fca7942
+  sha256: e6e4d171bc1326858ed70d17dc07e4f9c9a83c7d81fb15f138859aecf4b882df
 benchmark_summary:
   path: results/derived/benchmark_summary.json
-  sha256: 724c74e02b4dd3b4ee6c797c9ac338f58bb76e412b3812ac4beeefbcdbeb6e3e
+  sha256: 2b39452b85ab8caaef325709f4eb6280b277753b4658631575baa6b20c2b750d
 robustness_metrics:
   path: results/derived/robustness_metrics.json
-  sha256: 192c9c2aa5453fc28da85ac54e21b09d918f74f5161e5c4dea3d9244d4b42bcc
+  sha256: a267adcb80ea0dabf9b84d3962427ac8b7939dcfe8b42d366d742200058ddebf
 live_runs:
   github_readonly:
     path: results/raw/live/github-readonly/github-readonly-20260727T073251896080Z-9ca52435.json
@@ -39,4 +39,7 @@ live_runs:
 tool_comparison: null
 reproducibility:
   path: results/derived/reproducibility.json
-  sha256: 65d0a5b364699c1f5e41b4b6800ff574212c05b84242fa514230ad78f6cf79e6
+  sha256: 22bc044338ecc96201aa5285239a91467dee8d524c89bfb27348769979b3a71b
+baseline_comparison:
+  path: results/derived/baseline_comparison_dev.json
+  sha256: 4f9d01aab60d08815652fb5ad23f7a064219452595d71dc6ed4a58b8e8aebb29

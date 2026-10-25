@@ -21,6 +21,7 @@ ARTIFACT_KEYS = (
     "robustness_metrics",
     "reproducibility",
     "tool_comparison",
+    "baseline_comparison",
 )
 LIVE_KEYS = (
     "github_readonly",
@@ -40,6 +41,7 @@ DEFAULT_PATHS = {
     "benchmark_summary": "results/derived/benchmark_summary.json",
     "robustness_metrics": "results/derived/robustness_metrics.json",
     "reproducibility": "results/derived/reproducibility.json",
+    "baseline_comparison": "results/derived/baseline_comparison_dev.json",
 }
 
 REQUIRED_RELEASE_KEYS = (

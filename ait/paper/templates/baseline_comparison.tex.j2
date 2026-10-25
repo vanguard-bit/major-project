@@ -1,0 +1,15 @@
+\begin{tabular}{llcccc}
+  \toprule
+  \textbf{Unit / category} & \textbf{Method} & \textbf{TP} & \textbf{FP} & \textbf{FN} & \textbf{TN} \\
+  \midrule
+{% if available %}
+{% for row in rows %}
+  {{ row.label }} & {{ row.method }} & {{ row.tp }} & {{ row.fp }} & {{ row.fn }} & {{ row.tn }} \\
+{% endfor %}
+  \midrule
+  \multicolumn{6}{l}{\footnotesize Cases: {{ scored }} scored of {{ total }}; disagreements on shared categories: {{ disagreements }}.} \\
+{% else %}
+  --- & NOT RUN & --- & --- & --- & --- \\
+{% endif %}
+  \bottomrule
+\end{tabular}

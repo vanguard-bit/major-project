@@ -14,7 +14,6 @@ from ait.models import (
     TargetConfig,
 )
 
-
 OutcomeCategory = Literal[
     "confirmed_policy_violation",
     "permitted_behavior",

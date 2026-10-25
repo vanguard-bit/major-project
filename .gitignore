@@ -26,3 +26,6 @@ results/generated/*.tex
 *.fls
 *.fdb_latexmk
 *.synctex.gz
+
+# Raw integration traces (may contain secrets) - never commit; only sanitized output under results/raw/integration/
+traces/

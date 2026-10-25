@@ -63,6 +63,13 @@ claims:
       artifact: reproducibility
       json_pointer: /payload/accepted
     required: true
+  - id: baseline-comparison
+    text_pattern: "baseline_comparison"
+    documents: [main.tex, report.tex]
+    evidence:
+      artifact: baseline_comparison
+      json_pointer: /payload/methods
+    required: true
   - id: live-saas-results
     text_pattern: "live_results"
     documents: [main.tex, report.tex]

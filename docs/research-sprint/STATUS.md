@@ -1,8 +1,34 @@
 # Research Sprint — Status
 
 Sprint: Research Paper Improvement Sprint (7 days, team of two).
-Current phase: **Phase 0 complete — waiting at Gate 0 (human review).**
-No implementation, label, manifest, hash, or paper changes have been made.
+Current phase: **All agent-executable work done. Remaining items are human-owned** (see "Phase progress" and `FINAL_REVIEW.md`).
+
+## Phase progress (updated 2026-10-25)
+
+| Phase | Status | Evidence |
+|---|---|---|
+| 0 Baseline audit | done | this file, `FINDINGS.md`, `CLAIM_EVIDENCE_MATRIX.md` (commit `3475baf`) |
+| 1 Reproducibility + claim audit | done | F1 fixed: derived set force-added, pins regenerated, `check_stale` passes. Payload-level reproduction verified. Risk-score bug fixed (no result change) |
+| 2 Real integration | **tooling done; study not run** (human-owned: credentials, sandbox, ToS) | `ait/integration_trace.py`, `REAL_INTEGRATION_STUDY.md` |
+| 3a Baseline comparison (dev) | done; result: tie | protocol frozen first (`0fef5cb`), `ait/baseline.py`, `results/derived/baseline_comparison_dev.json` (`08c9c3d`) |
+| 3b Independent held-out set | **not run** (human-owned: Member B authors and freezes) | procedure in `EXPERIMENT_PROTOCOL.md` §10 |
+| 4 Paper revision | done for `main.tex` and `report.tex` (`.tex` only, no PDF per team instruction); title kept pending guide approval | see `FINAL_REVIEW.md` |
+| 5 Release review | done (agent side) | `FINAL_REVIEW.md` |
+
+### Commands run after Phase 0 (worktree `research-sprint/sprint-work`)
+
+| Command | Exit | Outcome |
+|---|---|---|
+| `uv run pytest -q` | 0 | 231 passed |
+| `uv run ruff check ait tests` | 0 | all checks passed |
+| `uv run python -m ait.experiments.run_offline --output-root results` | 0 | 46 artifacts; derived payloads identical to Phase 0 run; comparison identical to `08c9c3d` |
+| `uv run python -m ait.paper.update_artifact_hashes` | 0 | pins rewritten (originals in history at `fe1a2bb`) |
+| `uv run python -m ait.paper.check_stale --manifest configs/paper_artifacts.yaml` | 0 | passed |
+| `uv run python -m ait.paper.render_tables --manifest configs/paper_artifacts.yaml --output results/generated` | 0 | 10 fragments (new: `baseline_comparison.tex`) |
+| `uv run python -m ait.paper.audit_claims` | 0 | passed, including the new `baseline-comparison` claim in both papers |
+| Secret-pattern scan over all tracked + new files | — | only obviously fake fixtures in `tests/test_live_runner.py` (`ghp_SUPER_SECRET_TOKEN_DO_NOT_LEAK` etc.) |
+
+The Phase 0 record below is kept unchanged for history.
 
 ## Repository state at audit time (2026-10-25)
 
@@ -58,9 +84,9 @@ All commands run in the clean `fe1a2bb` worktree unless noted.
 | 5. Actual third-party integration observations | none | **not run** |
 | 6. Blocked / not run | RESTler/EvoMaster comparison (`NOT_RUN reason=image_digest_unpinned`); independent held-out set; real integration study; PDF build | not run |
 
-## Gate 0 — proposed minimal plan (awaiting approval)
+## Gate 0 — proposed minimal plan (as proposed at Phase 0; items 1–4 now done, 5–6 human-owned)
 
-See `FINDINGS.md` §"Smallest changes required". Nothing below has been started.
+See `FINDINGS.md` §"Smallest changes required".
 
 1. Make the evidence chain reproducible without editing original pins: commit a frozen derived set from a recorded run (force-add), record new hashes alongside the original ones, and document that byte-hash reproduction is impossible by design (timestamps in provenance) — compare payloads instead.
 2. Two-part baseline (`endpoint allowlist` + `exact canary-value search`) in one small module, run over the same scenario corpus.

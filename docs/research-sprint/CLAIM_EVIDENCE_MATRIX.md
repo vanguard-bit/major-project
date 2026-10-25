@@ -35,3 +35,26 @@ Reproduction commands assume the repo root and `uv sync --dev`.
 | 27 | Independent / held-out evaluation | none | none | — | **not run** | Phase 3 (Member B) |
 | 28 | Simple baseline comparison | none | none | — | **not run** | Phase 3 baseline |
 | 29 | Citations (35 `\bibitem` in M) support attributed claims | `main.tex` bibliography | — | — | **unverified** (no human verification yet) | Member B verifies the 8–10 core citations against originals |
+
+## Status after revision (2026-10-25, branch `research-sprint/sprint-work`)
+
+The rows above are the Phase 0 audit of `fe1a2bb` and are kept as audited. This table records what changed.
+
+| # | New status | What was done |
+|---|---|---|
+| 1 | resolved in body; **title pending guide** | Body uses "differential (baseline vs. state-varied) policy-conformance testing"; Terminology section added; registered title kept with a `TITLE PENDING GUIDE APPROVAL` comment |
+| 2 | resolved | "taint" removed as a description of AIT; DM2 described as field-name check; seeded values described as run attribution only |
+| 3–5 | partially verified (unchanged evidence) | Metrics framed as implementation validation on author-written traces |
+| 6 | **fixed** | Code now uses `|M \ B|`; no corpus result changed; disclosed as "post-audit correction" in both papers |
+| 7 | resolved | CVSS base-score ranges removed; weights stated as heuristic, uncalibrated |
+| 8, 20 | **verified** | Derived set committed; pins regenerated; `check_stale` passes on the committed tree; payload reproduction documented |
+| 10, 11 | resolved | Live rows relabelled as credential capability probes in template, prose and captions; NOT RUN/BLOCKED contradiction removed |
+| 17 | partially verified | "scalability" claims avoided; synthetic widths only |
+| 21 | not run | unchanged (no `make`/PDF) |
+| 22 | partially verified | New `baseline-comparison` claim added; audit still does not check prose semantics |
+| 23 | resolved | Stale script names and Python version fixed in both papers |
+| 26 | **not run** | Tooling ready: `ait/integration_trace.py`, `REAL_INTEGRATION_STUDY.md` |
+| 27 | **not run** | Freeze procedure ready (`EXPERIMENT_PROTOCOL.md` §10); needs Member B |
+| 28 | **verified (dev corpus)** | Tie: scenario-level TP 15 / FP 0 / FN 4 / TN 14 for both. `results/raw/baseline-comparison/dev/predictions.json`, `results/derived/baseline_comparison_dev.json`, `uv run python -m ait.experiments.compare_baseline run --scenario-root configs/scenarios --corpus dev` |
+| 29 | **unverified; 3 removed** | `petsios2017` (SlowFuzz cited as differential testing), `bulekov2023` (author/title mismatch), `wermke2022` (title unrelated to claim) removed from both papers. Remaining list for human verification in `FINAL_REVIEW.md` |
+| 30 (new) | partially verified | "Integration Trace Tool" (paper §Architecture): unit-tested on a synthetic HAR only (`tests/test_integration_trace.py`) |

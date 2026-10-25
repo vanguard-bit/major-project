@@ -1,0 +1,21 @@
+# TEMPLATE — not an experiment input until copied and filled in by Member A.
+# Copy to configs/integration/<name>.policy.yaml BEFORE capturing any trace, and commit it,
+# so the declared policy predates the observation.
+integration:
+  name: CHANGE-ME                      # e.g. repository-settings-app
+  repository: https://github.com/OWNER/REPO
+  commit: CHANGE-ME                    # exact commit/tag that was run
+  license: CHANGE-ME
+  authored_by_team: false              # true => call it a "reference integration", never third-party
+allowed_hosts:
+  - api.github.com
+ignore_hosts:                          # capture-infrastructure traffic, reported as out_of_scope
+  - smee.io
+# "[METHOD ]/path" ; {name} = one path segment, {name*} = rest of path. Derive from the
+# integration's documentation / declared permissions, not from the observed trace.
+expected_endpoints:
+  - GET /repos/{owner}/{repo}
+  - GET /repos/{owner}/{repo}/contents/{path*}
+denied_endpoints: []                   # explicit prohibitions => confirmed_policy_violation
+sensitive_markers: []                  # response field names AIT treats as sensitive
+canaries: []                           # synthetic values (>= 8 chars) you planted in the sandbox
